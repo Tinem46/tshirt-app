@@ -54,6 +54,7 @@ const CartPage = () => {
         <Text style={styles.price}>
           {Number(item.product.price).toLocaleString()} VND
         </Text>
+        <Text style={styles.name}>Size: {item.size}</Text>
         <View style={styles.quantityRow}>
           <TouchableOpacity
             onPress={() => updateQuantity(index, -1)}

@@ -2,7 +2,6 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  Dimensions,
   ImageBackground,
   Pressable,
   StyleSheet,
@@ -11,8 +10,6 @@ import {
   View,
 } from "react-native";
 import GestureRecognizer from "react-native-swipe-gestures";
-
-const { width } = Dimensions.get("window");
 
 const categoryData = [
   {
@@ -162,7 +159,7 @@ const styles = StyleSheet.create({
     marginTop: 100,
     marginBottom: 12,
     paddingHorizontal: 18,
-    gap: 20, 
+    gap: 20,
   },
   categoryBtn: {
     alignItems: "center",

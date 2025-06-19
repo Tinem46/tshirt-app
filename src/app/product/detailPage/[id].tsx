@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Animated,
   Dimensions,
+  Easing,
   Image,
   Modal,
   ScrollView,
@@ -36,9 +38,24 @@ const DetailPage = () => {
 
   const { id } = useLocalSearchParams<{ id: string }>();
   const [product, setProduct] = useState<IProduct | null>(null);
-  const [showStickyFooter, setShowStickyFooter] = useState(false);
   const { cart, setCart, setBuyNowItem } = useCurrentApp(); // thêm dòng này
   const [quantity, setQuantity] = useState(1);
+  const flyAnim = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const [showFlyImage, setShowFlyImage] = useState(false);
+
+  const startFlyToCartAnimation = () => {
+    setShowFlyImage(true);
+    flyAnim.setValue({ x: 150, y: 300 }); // Vị trí bắt đầu (ảnh sản phẩm)
+
+    Animated.timing(flyAnim, {
+      toValue: { x: width - 50, y: 0 }, // Vị trí giỏ hàng (top-right)
+      duration: 600,
+      easing: Easing.inOut(Easing.quad),
+      useNativeDriver: true,
+    }).start(() => {
+      setShowFlyImage(false); // Ẩn sau animation
+    });
+  };
 
   useEffect(() => {
     if (id) {
@@ -86,7 +103,7 @@ const DetailPage = () => {
     }
 
     setCart(updatedCart);
-    Alert.alert("Đã thêm vào giỏ hàng.");
+    startFlyToCartAnimation();
   };
 
   const handleBuyNow = () => {
@@ -101,8 +118,8 @@ const DetailPage = () => {
       quantity,
     };
 
-    setBuyNowItem(item); // ✅ lưu sản phẩm
-    router.push("/order/checkout"); // ✅ chuyển sang trang thanh toán
+    setBuyNowItem(item);
+    router.push("/order/checkout");
   };
 
   return (
@@ -244,6 +261,21 @@ const DetailPage = () => {
               </TouchableOpacity>
             </View>
           </Modal>
+          {showFlyImage && (
+            <Animated.Image
+              source={{ uri: images[selectedIndex] }}
+              style={{
+                width: 50,
+                height: 50,
+                borderRadius: 10,
+                position: "absolute",
+                top: 0,
+                left: 0,
+                transform: flyAnim.getTranslateTransform(),
+                zIndex: 1000,
+              }}
+            />
+          )}
         </ScrollView>
       </SafeAreaView>
     </>

@@ -1,14 +1,12 @@
-import { ImageBackground, StyleSheet, Text, View, Image } from "react-native";
+import { router } from "expo-router";
 
-import { Link, Redirect, router } from "expo-router";
-
+import { useCurrentApp } from "@/context/app.context";
 import { useEffect, useState } from "react";
 import { getAccountApi } from "./utils/apiall";
-import { useCurrentApp } from "@/context/app.context";
 
-import * as SplashScreen from "expo-splash-screen";
 import * as Font from "expo-font";
-import { a } from "@faker-js/faker/dist/airline-BBTAAfHZ";
+import * as SplashScreen from "expo-splash-screen";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { APP_FONT } from "./utils/constant";
 

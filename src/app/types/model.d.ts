@@ -73,6 +73,7 @@ export interface IProduct {
 export interface ICartItem {
   product: IProduct;
   quantity: number;
+  size: string; // Added size property
 }
 
 
