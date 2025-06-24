@@ -3,8 +3,8 @@ import { api } from "@/config/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
-export const registerApi = (email: string, name: string, password: string) => {
-    return api.post<IBackendRes<any>>("auth/register", { email, name, password });
+export const registerApi = (email: string, password: string, firstName: string, lastName:string, gender :boolean) => {
+    return api.post<IBackendRes<any>>("Account/register", { email, password , firstName, lastName, gender});
 }
 
 export const verifyAPI = (email: string, code: string) => {
@@ -14,11 +14,11 @@ export const resendCodeAPI = (email: string) => {
     return api.post<IBackendRes<any>>("auth/verify-email", { email});
 }
 
-export const loginAPI = (username: string, password: string) => {
-    return api.post<IBackendRes<ILogin>>("auth/login", { username, password });
+export const loginAPI = (Email: string, Password: string) => {
+    return api.post<IBackendRes<ILogin>>("Account/login", { Email, Password });
 };
 export const getAccountApi = () => {
-    return api.get<IBackendRes<ILogin>>("auth/account");
+    return api.get<IBackendRes<ILogin>>("Account/account");
 };
 export const updateUserAPI = (id: any, name: string, phone: string) => {
     return api.patch<IBackendRes<ILogin>>(`users`, {

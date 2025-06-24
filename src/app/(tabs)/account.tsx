@@ -4,7 +4,7 @@ import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { backEndURL } from "../utils/apiall";
 import { APP_COLOR } from "../utils/constant";
 
@@ -32,11 +32,11 @@ const AccountPage = () => {
     <View style={{ flex: 1, backgroundColor: "#f9f9f9" }}>
       {/* Header */}
       <View style={styles.header}>
-        <Image
+        {/* <Image
           source={{ uri: `${baseImgage}/${appState?.user.avatar}` }}
           style={styles.avatar}
-        />
-        <Text style={styles.username}>{appState?.user.name}</Text>
+        /> */}
+        <Text style={styles.username}>{appState?.user.firstName}</Text>
       </View>
 
       {/* Options */}
@@ -46,7 +46,7 @@ const AccountPage = () => {
           style={styles.itemContainer}
         >
           <View style={styles.item}>
-            <Feather name="user-check" size={20}  />
+            <Feather name="user-check" size={20} />
             <Text style={styles.itemText}>Thông tin tài khoản</Text>
           </View>
           <MaterialIcons name="navigate-next" size={24} color="#999" />
@@ -57,7 +57,7 @@ const AccountPage = () => {
           style={styles.itemContainer}
         >
           <View style={styles.item}>
-            <Feather name="key" size={20}  />
+            <Feather name="key" size={20} />
             <Text style={styles.itemText}>Thay đổi mật khẩu</Text>
           </View>
           <MaterialIcons name="navigate-next" size={24} color="#999" />
@@ -65,7 +65,7 @@ const AccountPage = () => {
 
         <Pressable style={styles.itemContainer}>
           <View style={styles.item}>
-            <Feather name="globe" size={20}  />
+            <Feather name="globe" size={20} />
             <Text style={styles.itemText}>Ngôn ngữ</Text>
           </View>
           <MaterialIcons name="navigate-next" size={24} color="#999" />
@@ -73,7 +73,7 @@ const AccountPage = () => {
 
         <Pressable style={styles.itemContainer}>
           <View style={styles.item}>
-            <Feather name="info" size={20}  />
+            <Feather name="info" size={20} />
             <Text style={styles.itemText}>Về ứng dụng</Text>
           </View>
           <MaterialIcons name="navigate-next" size={24} color="#999" />

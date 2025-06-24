@@ -5,32 +5,37 @@ import TextBetweenLine from "@/components/text/textline";
 import { Link, router } from "expo-router";
 import { Formik } from "formik";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Toast from "react-native-root-toast";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { registerApi } from "../utils/apiall";
 import { RegisterSchema } from "../utils/validate.schema";
 
 const SignUpPage = () => {
-  const [name, setName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
   const handleSignUp = async (
     email: string,
-    name: string,
-    password: string
+    password: string,
+    firstName: string,
+    lastName: string,
+
+    gender: boolean = true
   ) => {
     try {
       setLoading(true);
-      const response = await registerApi(email, name, password);
+      const response = await registerApi(
+        email,
+        password,
+        firstName,
+        lastName,
+        gender
+      );
       console.log(response.data);
       if (response.data) {
         alert("Sign up successfully");
         router.navigate({
-          pathname: "/(auth)/verify",
-          params: { email: email },
+          pathname: "/(auth)/login",
         });
       } else {
         const m = Array.isArray(response.message)
@@ -50,10 +55,22 @@ const SignUpPage = () => {
     <SafeAreaView style={{ flex: 1 }}>
       <Formik
         validationSchema={RegisterSchema}
-        initialValues={{ email: "", name: "", password: "" }}
-        onSubmit={(values) =>
-          handleSignUp(values.email, values.name, values.password)
-        }
+        initialValues={{
+          email: "",
+          password: "",
+          firstName: "",
+          lastName: "",
+          gender: true,
+        }}
+        onSubmit={(values) => {
+          handleSignUp(
+            values.email,
+            values.password,
+            values.firstName,
+            values.lastName,
+            values.gender
+          );
+        }}
       >
         {({
           handleChange,
@@ -62,6 +79,7 @@ const SignUpPage = () => {
           values,
           errors,
           touched,
+          setFieldValue,
         }) => (
           <View style={styles.conntainer}>
             <View>
@@ -77,14 +95,6 @@ const SignUpPage = () => {
               touched={touched.email}
             />
             <ShareInput
-              title="Name"
-              onChangeText={handleChange("name")}
-              onBlur={handleBlur("name")}
-              value={values.name}
-              error={errors.name}
-              touched={touched.name}
-            />
-            <ShareInput
               title="Password"
               secureTextEntry={true}
               onChangeText={handleChange("password")}
@@ -93,7 +103,55 @@ const SignUpPage = () => {
               error={errors.password}
               touched={touched.password}
             />
-            <View style={{ marginTop: 10 }}></View>
+            <ShareInput
+              title="First Name"
+              onChangeText={handleChange("firstName")}
+              onBlur={handleBlur("firstName")}
+              value={values.firstName}
+              error={errors.firstName}
+              touched={touched.firstName}
+            />
+            <ShareInput
+              title="Last Name"
+              onChangeText={handleChange("lastName")}
+              onBlur={handleBlur("lastName")}
+              value={values.lastName}
+              error={errors.lastName}
+              touched={touched.lastName}
+            />
+            <View style={styles.genderGroup}>
+              <Text style={styles.genderTitle}>Giới tính</Text>
+              <View style={styles.genderOptions}>
+                <TouchableOpacity
+                  style={styles.genderOption}
+                  onPress={() => setFieldValue("gender", true)}
+                >
+                  <View style={styles.genderCircle}>
+                    {values.gender === true && (
+                      <View style={styles.genderCircleSelected} />
+                    )}
+                  </View>
+                  <Text>Nam</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.genderOption}
+                  onPress={() => setFieldValue("gender", false)}
+                >
+                  <View style={styles.genderCircle}>
+                    {values.gender === false && (
+                      <View style={styles.genderCircleSelected} />
+                    )}
+                  </View>
+                  <Text>Nữ</Text>
+                </TouchableOpacity>
+              </View>
+
+              {touched.gender && errors.gender && (
+                <Text style={styles.genderErrorText}>{errors.gender}</Text>
+              )}
+            </View>
+
             <ShareButton
               loading={loading}
               title="Sign Up"
@@ -157,7 +215,50 @@ const styles = StyleSheet.create({
   textTitle: {
     fontSize: 25,
     fontWeight: "bold",
-    marginVertical: 30,
+    marginVertical: 20,
+  },
+
+  container: {
+    flex: 1,
+    marginHorizontal: 20,
+    gap: 15,
+    marginTop: 20,
+  },
+
+  genderGroup: {
+    marginTop: 10,
+  },
+  genderTitle: {
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  genderOptions: {
+    flexDirection: "row",
+    gap: 20,
+  },
+  genderOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  genderCircle: {
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#000",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  genderCircleSelected: {
+    height: 10,
+    width: 10,
+    borderRadius: 5,
+    backgroundColor: "#000",
+  },
+  genderErrorText: {
+    color: "red",
+    marginTop: 5,
   },
 });
 export default SignUpPage;

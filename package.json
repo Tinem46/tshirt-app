@@ -2,17 +2,16 @@
   "name": "tshirt-app",
   "main": "expo-router/entry",
   "version": "1.0.0",
-"scripts": {
+  "scripts": {
     "start": "npm run start-emulator && expo start --android",
-  "start-emulator": "start /wait start-emulator.bat"       , 
-  "start-only": "expo start",                  
-  "reset-project": "node ./scripts/reset-project.js",
-  "android": "expo start --android",
-  "ios": "expo start --ios",
-  "web": "expo start --web",
-  "lint": "expo lint"
-},
-
+    "start-emulator": "start /wait start-emulator.bat",
+    "start-only": "expo start",
+    "reset-project": "node ./scripts/reset-project.js",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "lint": "expo lint"
+  },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
     "@faker-js/faker": "^9.8.0",
@@ -39,6 +38,7 @@
     "expo-system-ui": "~5.0.8",
     "expo-web-browser": "~14.1.6",
     "formik": "^2.4.6",
+    "jwt-decode": "^4.0.0",
     "react": "19.0.0",
     "react-content-loader": "^7.0.2",
     "react-dom": "19.0.0",

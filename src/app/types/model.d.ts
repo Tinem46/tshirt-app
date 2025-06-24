@@ -17,43 +17,14 @@ interface IRegister {
  export interface ILogin {
     user:{
         email: string;
-            _id: string;
-            name: string;
-            role: string;
-            phone: string;
-            address: any;
-            avatar: string;
+            id: string;
+            firstName: string;
+            lastName: string;
+            gender: string;
     }
     access_token:string;
 }
-export interface ITopRestaurant {
-    _id: string,
-    name: string,
-    phone: string,
-    address: string,
-    email: string,
-    rating: number,
-    image: string,
-    isActive: boolean,
-    createdAt: Date,
-    updatedAt: Date,
-}
 
-export interface IRestaurant {
-    _id: string,
-    name: string,
-    phone: string,
-    address: string,
-    email: string,
-    rating: number,
-    image: string,
-    isActive: boolean,
-    createdAt: Date,
-    updatedAt: Date,
-
-    menu: IMenu[],
-    isLike: boolean,
-}
 export interface IProduct {
     id: string,
     name: string,

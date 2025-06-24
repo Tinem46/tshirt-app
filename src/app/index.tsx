@@ -23,12 +23,19 @@ const RootPage = () => {
   useEffect(() => {
     async function prepare() {
       try {
-        // Pre-load fonts, make any API calls you need to do here
+        const access_token = await AsyncStorage.getItem("access_token");
+        if (!access_token) {
+          // Không có token -> chưa đăng nhập
+          router.replace("/(auth)/welcome");
+          await SplashScreen.hideAsync();
+          return;
+        }
+        // Có token -> gọi getAccountApi để xác thực token
         const res = await getAccountApi();
-        if (res.data) {
+        if (res && res.email) {
           setAppState({
-            user: res.data.user,
-            access_token: await AsyncStorage.getItem("access_token"),
+            user: res,
+            access_token,
           });
           router.replace("/(tabs)");
         } else {
@@ -40,7 +47,6 @@ const RootPage = () => {
           throw new Error("Không thể kết nối tới backend");
         });
       } finally {
-        // Tell the application to render
         await SplashScreen.hideAsync();
       }
     }

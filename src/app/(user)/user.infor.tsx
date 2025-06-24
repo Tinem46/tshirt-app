@@ -66,12 +66,12 @@ const UserInfo = () => {
               source={{ uri: `${baseImgage}/${appState?.user.avatar}` }}
               style={{ width: 150, height: 150 }}
             />
-            <Text>{appState?.user.name}</Text>
+            <Text>{appState?.user.firstName}</Text>
           </View>
           <Formik
             validationSchema={UpdateUserSchema}
             initialValues={{
-              name: appState?.user.name,
+              name: appState?.user.firstName,
               email: appState?.user.email,
               phone: appState?.user.phone,
             }}

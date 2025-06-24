@@ -2,11 +2,11 @@ import * as Yup from 'yup';
 
 export const LoginSchema = Yup.object().shape({
    
-    password: Yup.string()
+    Password: Yup.string()
         .min(2, 'Too Short!')
         .max(50, 'Too Long!')
         .required('Không được để trống'),
-    email: Yup.string()
+    Email: Yup.string()
         .email('Invalid email')
         .required('Không được để trống'),
   });
@@ -32,21 +32,32 @@ export const RequestPasswordSchema = Yup.object().shape({
   });
 
 export const RegisterSchema = Yup.object().shape({
-   
-    password: Yup.string()
-        .min(2, 'Too Short!')
-        .max(50, 'Too Long!')
-        .required('Không được để trống'),
-    name: Yup.string()
-        .min(2, 'Too Short!')
-        .max(50, 'Too Long!')
-        .required('Không được để trống'),
-    email: Yup.string()
-        .email('Invalid email')
-        .required('Không được để trống'),
-  });
+  email: Yup.string()
+    .email("Email không hợp lệ")
+    .required("Không được để trống"),
+
+ firstName: Yup.string()
+    .min(2, "Tên quá ngắn")
+    .max(50, "Tên quá dài")
+    .required("Không được để trống"),
+  lastName: Yup.string()
+    .min(1, "Họ quá ngắn")
+    .max(50, "Họ quá dài")
+    .required("Không được để trống"),
+
+  password: Yup.string()
+    .min(2, "Mật khẩu quá ngắn")
+    .max(50, "Mật khẩu quá dài")
+    .required("Không được để trống"),
+
+  gender: Yup.boolean()
+    .required("Không được để trống"),
+});
 
   export const UpdateUserSchema = Yup.object().shape({
-    name: Yup.string().required('Họ và tên Không được để trống'),
+    firstName: Yup.string().required('Họ và tên Không được để trống'),
+    lastName: Yup.string().required('Họ và tên Không được để trống'),
     phone: Yup.string().required('Số điện thoại Không được để trống'),
+    gender: Yup.string().required('Số điện thoại Không được để trống'),
+
   })

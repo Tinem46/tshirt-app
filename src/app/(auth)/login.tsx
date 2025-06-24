@@ -6,6 +6,7 @@ import { useCurrentApp } from "@/context/app.context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link, router } from "expo-router";
 import { Formik } from "formik";
+import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Toast from "react-native-root-toast";
@@ -15,32 +16,64 @@ import { LoginSchema } from "../utils/validate.schema";
 
 const Login = () => {
   const [username, setUserName] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+  const [Password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const { setAppState } = useCurrentApp();
 
-  const handleLogin = async (email: string, password: string) => {
+  const handleLogin = async (Email: string, Password: string) => {
     try {
       setLoading(true);
-      const response = await loginAPI(email, password);
+      const response = await loginAPI(Email, Password);
+      console.log("Login response:", response);
 
-      if (response.data) {
-        const a = response.data;
-        alert("Login successfully");
-        await AsyncStorage.setItem("access_token", a.access_token);
-        setAppState(a);
-        router.navigate({
-          pathname: "/(tabs)",
+      // Phần response trả ra sẽ có data.token giống web (nếu login thành công)
+      if (response && response.token) {
+        const { token } = response;
+
+        // Decode token để lấy role, userId
+        const decodedToken = jwtDecode<{ [key: string]: any }>(token);
+        const role =
+          decodedToken[
+            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+          ] ||
+          decodedToken.role ||
+          "USER";
+        const userId =
+          decodedToken[
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+          ] ||
+          decodedToken["sub"] ||
+          decodedToken["id"] ||
+          null;
+
+        // Lưu vào AsyncStorage
+        await AsyncStorage.setItem("access_token", token);
+        await AsyncStorage.setItem("role", role);
+        if (userId) await AsyncStorage.setItem("userId", String(userId));
+
+        // Cập nhật context app state nếu cần
+        setAppState({
+          token,
+          role,
+          userId,
+          // ...thêm user info khác nếu cần
         });
+
+        // Điều hướng theo role
+
+        router.replace("/(tabs)");
+        Toast.show("Login successful!", { position: Toast.positions.TOP });
       } else {
-        const m = Array.isArray(response.message)
-          ? response.message[0]
-          : response.message;
-        Toast.show(m, {
-          position: Toast.positions.TOP,
-        });
+        // Nếu backend trả lỗi
+        const msg =
+          (response && response.message) ||
+          "Login failed. Please check your Email and Password.";
+        Toast.show(msg, { position: Toast.positions.TOP });
       }
     } catch (error) {
+      Toast.show("Login failed. Please check your Email and Password.", {
+        position: Toast.positions.TOP,
+      });
       console.log(error);
     } finally {
       setLoading(false);
@@ -50,8 +83,8 @@ const Login = () => {
     <SafeAreaView style={{ flex: 1 }}>
       <Formik
         validationSchema={LoginSchema}
-        initialValues={{ email: "", password: "" }}
-        onSubmit={(values) => handleLogin(values.email, values.password)}
+        initialValues={{ Email: "", Password: "" }}
+        onSubmit={(values) => handleLogin(values.Email, values.Password)}
       >
         {({
           handleChange,
@@ -65,20 +98,20 @@ const Login = () => {
           //   <Text>Email</Text>
           //   <TextInput
           //     style={{ borderWidth: 1, borderColor: "#ccc" }}
-          //     onChangeText={handleChange("email")}
-          //     onBlur={handleBlur("email")}
-          //     value={values.email}
+          //     onChangeText={handleChange("Email")}
+          //     onBlur={handleBlur("Email")}
+          //     value={values.Email}
           //   />
-          //   {errors.email && <Text style={{ color: "red" }}>{errors.email}</Text>}
+          //   {errors.Email && <Text style={{ color: "red" }}>{errors.Email}</Text>}
           //   <View style={{ marginVertical: 10 }}></View>
           //   <Text>Password</Text>
           //   <TextInput
           //     style={{ borderWidth: 1, borderColor: "#ccc" }}
-          //     onChangeText={handleChange("password")}
-          //     onBlur={handleBlur("password")}
-          //     value={values.password}
+          //     onChangeText={handleChange("Password")}
+          //     onBlur={handleBlur("Password")}
+          //     value={values.Password}
           //   />
-          //   {errors.password && <Text style={{ color: "red" }}>{errors.password}</Text>}
+          //   {errors.Password && <Text style={{ color: "red" }}>{errors.Password}</Text>}
           //   <View style={{ marginVertical: 10 }}></View>
 
           //   <Button onPress={handleSubmit as any} title="Submit" />
@@ -91,21 +124,21 @@ const Login = () => {
             <ShareInput
               title="Email"
               keyboardType="email-address"
-              onChangeText={handleChange("email")}
-              onBlur={handleBlur("email")}
-              value={values.email}
-              error={errors.email}
-              touched={touched.email}
+              onChangeText={handleChange("Email")}
+              onBlur={handleBlur("Email")}
+              value={values.Email}
+              error={errors.Email}
+              touched={touched.Email}
             />
 
             <ShareInput
               title="Password"
               secureTextEntry={true}
-              onChangeText={handleChange("password")}
-              onBlur={handleBlur("password")}
-              value={values.password}
-              error={errors.password}
-              touched={touched.password}
+              onChangeText={handleChange("Password")}
+              onBlur={handleBlur("Password")}
+              value={values.Password}
+              error={errors.Password}
+              touched={touched.Password}
             />
             <View style={{ marginTop: 5 }}></View>
 
