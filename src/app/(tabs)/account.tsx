@@ -65,8 +65,8 @@ const AccountPage = () => {
 
         <Pressable style={styles.itemContainer}>
           <View style={styles.item}>
-            <Feather name="globe" size={20} />
-            <Text style={styles.itemText}>Ngôn ngữ</Text>
+            <Feather name="headphones" size={20} />
+            <Text style={styles.itemText}>Địa chỉ</Text>
           </View>
           <MaterialIcons name="navigate-next" size={24} color="#999" />
         </Pressable>

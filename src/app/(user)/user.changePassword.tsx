@@ -12,8 +12,16 @@ import { ChangePassSchema } from "../utils/validate.schema";
 const ChangePassword = () => {
   const formikRef = useRef<FormikProps<any>>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const handleChange = async (currentPassword: string, newPassword: string) => {
-    const res = await updatePasswordAPI(currentPassword, newPassword);
+  const handleChange = async (
+    oldPassword: string,
+    newPassword: string,
+    confirmPassword: string
+  ) => {
+    const res = await updatePasswordAPI(
+      oldPassword,
+      newPassword,
+      confirmPassword
+    );
     if (res.data) {
       setLoading(false);
       Toast.show("Cập nhật mật khẩu thành công", {
@@ -39,12 +47,16 @@ const ChangePassword = () => {
         innerRef={formikRef}
         validationSchema={ChangePassSchema}
         initialValues={{
-          currentPassword: "",
+          oldPassword: "",
           newPassword: "",
           confirmPassword: "",
         }}
         onSubmit={(values) =>
-          handleChange(values?.currentPassword ?? "", values?.newPassword ?? "")
+          handleChange(
+            values?.oldPassword ?? "",
+            values?.newPassword ?? "",
+            values?.confirmPassword ?? ""
+          )
         }
       >
         {({

@@ -1,79 +1,97 @@
-import { ILogin, IModelPaginate, IRestaurant, ITopRestaurant } from "@/app/types/model";
+import { ILogin } from "@/app/types/model";
 import { api } from "@/config/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
-export const registerApi = (email: string, password: string, firstName: string, lastName:string, gender :boolean) => {
-    return api.post<IBackendRes<any>>("Account/register", { email, password , firstName, lastName, gender});
-}
+// Đổi lại cho đồng bộ với backend mới:
+export const registerApi = (
+  email: string,
+  password: string,
+  firstName: string,
+  lastName: string,
+  gender: number // 0: Nam, 1: Nữ
+) => {
+  return api.post<IBackendRes<any>>("Auth/register", {
+    email,
+    password,
+    firstName,
+    lastName,
+    gender,
+  });
+};
+// Xác nhận email từ link, cần userId và token
+export const confirmEmailAPI = (userId: string, token: string) => {
+  return api.get<IBackendRes<any>>("Auth/confirm-email", {
+    params: { userId, token },
+  });
+};
 
-export const verifyAPI = (email: string, code: string) => {
-    return api.post<IBackendRes<any>>("auth/verify-code", { email, code });
-}
-export const resendCodeAPI = (email: string) => {
-    return api.post<IBackendRes<any>>("auth/verify-email", { email});
-}
+export const resendConfirmationAPI = (email: string) => {
+  return api.post<IBackendRes<any>>("Auth/resend-confirmation", { email });
+};
+
+
 
 export const loginAPI = (Email: string, Password: string) => {
-    return api.post<IBackendRes<ILogin>>("Account/login", { Email, Password });
+    return api.post<IBackendRes<ILogin>>("Auth/login", { Email, Password });
 };
-export const getAccountApi = () => {
-    return api.get<IBackendRes<ILogin>>("Account/account");
+// Google
+export const googleLoginAPI = (tokenId: string) => {
+    return api.post<IBackendRes<any>>("Auth/google-login-token", { tokenId });
 };
-export const updateUserAPI = (id: any, name: string, phone: string) => {
-    return api.patch<IBackendRes<ILogin>>(`users`, {
-      _id: id, 
-      name,
-      phone,
-    });
-  };
-export const updatePasswordAPI = (currentPassword:string, newPassword:string) => {
-    return api.post<IBackendRes<ILogin>>(`users/password`, {
-        currentPassword,
-        newPassword,
-    });
-  };
-export const RequestPasswordAPI = (email:string) => {
-    return api.post<IBackendRes<ILogin>>(`auth/retry-password`, {
-        email,
-    });
-  };
-export const ForgotPasswordAPI = (code:string,email:string,password:string) => {
-    return api.post<IBackendRes<ILogin>>(`auth/forgot-password`, {
-        email,
-        code,
-        password,
-    });
-  };
-export const likeRestaurantAPI = (restaurant:string, quantity:number) => {
-    return api.post<IBackendRes<ILogin>>(`likes`, {
-        restaurant,
-        quantity,
-    });
-  };
-export const getFavoriteRestaurantAPI = () => {
-    return api.get<IBackendRes<ILogin>>(`likes?current=1&pageSize=10`);
-  };
-  
-  
-export const getTopRestaurant = (ref:string) => {
-    return api.post<IBackendRes<ITopRestaurant[]>>(`restaurants/${ref}`);    
+
+export const getUserInfoAPI = () => {
+    return api.get<IBackendRes<any>>("Auth/current-user");}
+
+
+export const fetchProductsAPI = (params: any) => {
+  // "Product" là route backend trả về danh sách sản phẩm
+  return api.get<IBackendRes<any>>("Product", { params });
 };
-export const getRestaurantById = (id:string) => {
-    return api.get<IBackendRes<IRestaurant>>(`restaurants/${id}`,{headers:{delay:3000}});    
+
+export const updatePasswordAPI = (oldPassword: string, newPassword: string, confirmPassword:string) => {
+  return api.post<IBackendRes<any>>("Auth/change-password", {
+    oldPassword,
+    newPassword,
+    confirmPassword,
+})};
+
+export const getProductDetailAPI = (id: string) => api.get<IBackendRes<any>>(`Product/${id}`);
+export const getProductVariantsAPI = (id: string) => api.get<IBackendRes<any>>(`ProductVariant/product/${id}`);
+export const addToCartAPI = (data: { productId: string, productVariantId: string | null, quantity: number }) => api.post<IBackendRes<any>>("Cart", data);
+export const updateCartItemAPI =  ({
+  cartItemId,
+  quantity,
+}: {
+  cartItemId: string;
+  quantity: number;
+}) => {
+  return api.put<IBackendRes<any>>(`Cart/${cartItemId}`, { quantity });
 };
-export const placeOrderAPI = (data: any) => {
-    return api.post<IBackendRes<IRestaurant>>(`orders`, {...data})  
+
+// Xóa 1 item khỏi giỏ
+export const removeCartItemAPI =  (cartItemId: string) => {
+  return api.delete<IBackendRes<any>>(`Cart/${cartItemId}`);
 };
-export const getOrderHistoryAPI = () => {
-    return api.get<IBackendRes<IRestaurant>>(`orders`)  
+export const getCartAPI =  () => {
+  return api.get<IBackendRes<any>>("Cart/my-cart"); // URL tùy theo backend bạn
 };
-export const getRestaurantByName = (name: string) => {
-    return api.get<IBackendRes<IModelPaginate<IRestaurant>>>(`restaurants?current=1&pageSize=10&name=/${name}/i`);  
+export const getProductVariantAPI = (variantId: string) =>
+  api.get<IBackendRes<any>>(`ProductVariant/${variantId}`);
+export const getCartSummaryAPI = () => api.get<IBackendRes<any>>("Cart/summary");
+// Lấy danh sách phương thức giao hàng
+export const getShippingMethodsAPI = () => {
+  // Đường dẫn API giống web
+  return api.get("/admin/shipping-methods");
+};// Đặt hàng
+export const placeOrderAPI = (payload: any) => {
+  return api.post("Orders", payload);
 };
-export const filterRestaurantAPI = (query: string) => {
-    return api.get<IBackendRes<IModelPaginate<IRestaurant>>>(`restaurants?${query}`);  
+
+export const getOrderDetailAPI = (orderId: string) => {
+  return api.get(`Orders/${orderId}`);
 };
+
 
  export const printAsyncStorage = () => {
     AsyncStorage.getAllKeys((err, keys) => {
@@ -95,17 +113,6 @@ export const backEndURL =() =>{
     return backend;
 }
 
-export const processDataRestaurantMenu = (restaurant: IRestaurant | null) => {
-    if (!restaurant) return [];
-    return restaurant?.menu?.map((menu, index) => {
-        return {
-            index,
-            key: menu._id,
-            title: menu.title,
-            data: menu.menuItem
-        }
-    })
-}
 
 export const currencyFormatter = (value: any) => {
     const options = {

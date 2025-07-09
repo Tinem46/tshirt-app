@@ -21,6 +21,13 @@ interface IRegister {
             firstName: string;
             lastName: string;
             gender: string;
+            address:string;
+            city:string;
+            district:string;
+            ward:string;
+            phoneNumber:string;
+           
+
     }
     access_token:string;
 }
@@ -37,6 +44,7 @@ export interface IProduct {
     inStock: boolean,
     category: string,
     quantity: number,
+    size:string
 
     liked: boolean,
 }
@@ -45,6 +53,7 @@ export interface ICartItem {
   product: IProduct;
   quantity: number;
   size: string; // Added size property
+  unitPrice: number; // Added unit price property
 }
 
 

@@ -2,7 +2,6 @@ import { router } from "expo-router";
 
 import { useCurrentApp } from "@/context/app.context";
 import { useEffect, useState } from "react";
-import { getAccountApi } from "./utils/apiall";
 
 import * as Font from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
@@ -29,17 +28,10 @@ const RootPage = () => {
           router.replace("/(auth)/welcome");
           await SplashScreen.hideAsync();
           return;
-        }
-        // Có token -> gọi getAccountApi để xác thực token
-        const res = await getAccountApi();
-        if (res && res.email) {
-          setAppState({
-            user: res,
-            access_token,
-          });
-          router.replace("/(tabs)");
         } else {
-          router.replace("/(auth)/welcome");
+          router.replace("/(tabs)");
+          await SplashScreen.hideAsync();
+          return;
         }
       } catch (e) {
         console.warn(e);

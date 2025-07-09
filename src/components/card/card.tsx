@@ -1,7 +1,6 @@
 import { useCurrentApp } from "@/context/app.context";
-import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   Dimensions,
   Image,
@@ -11,59 +10,16 @@ import {
   View,
 } from "react-native";
 import { IProduct } from "../../app/types/model";
-import { mockLikeProductAPI } from "../../app/utils/apiall";
-import { APP_COLOR } from "../../app/utils/constant";
 
 interface CardProps {
   shirt: IProduct;
 }
 
 const Card = ({ shirt }: CardProps) => {
-  const {
-    appState,
-    likeUpdated,
-    setLikeUpdated,
-    likedProductIds,
-    setLikedProductIds,
-  } = useCurrentApp();
-  const userId = appState?.user?._id;
-  const [like, setLike] = useState<boolean>(false);
+  const { appState } = useCurrentApp();
+  const userId = appState?.user?.id;
 
   // Mỗi khi context likedProductIds hoặc id sản phẩm đổi, cập nhật lại trạng thái "tim"
-  useEffect(() => {
-    setLike(likedProductIds.includes(shirt.id));
-  }, [likedProductIds, shirt.id]);
-
-  const handleLike = async () => {
-    if (!userId) {
-      alert("Bạn cần đăng nhập để thích sản phẩm.");
-      return;
-    }
-    const quantity = like ? -1 : 1;
-    if (!shirt?.id) {
-      alert("Không tìm thấy thông tin.");
-      return;
-    }
-
-    // Gọi mock API (hoặc thật nếu bạn có)
-    const res = await mockLikeProductAPI(shirt.id, quantity);
-    const result = res as { data?: any; message?: string | string[] };
-
-    if (result.data) {
-      // Cập nhật context: Thêm/Xóa id khỏi mảng sản phẩm đã like
-      setLikedProductIds(
-        like
-          ? likedProductIds.filter((id: string) => id !== shirt.id)
-          : [...likedProductIds, shirt.id]
-      );
-      setLikeUpdated(!likeUpdated); // (option) để các chỗ khác nhận biết thay đổi
-    } else {
-      const m = Array.isArray(result.message)
-        ? result.message[0]
-        : result.message;
-      alert(m);
-    }
-  };
 
   const colorHexMap = {
     Trắng: "#fafafa",
@@ -79,6 +35,7 @@ const Card = ({ shirt }: CardProps) => {
           pathname: "/product/detailPage/[id]",
           params: { id: shirt.id },
         });
+        console.log("Navigating to product detail:", shirt.id);
       }}
     >
       <View style={styles.card}>
@@ -93,17 +50,9 @@ const Card = ({ shirt }: CardProps) => {
               { backgroundColor: colorHexMap[shirt.color] || "#eee" },
             ]}
           />
-          <View>
-            <MaterialIcons
-              onPress={handleLike}
-              name={like ? "favorite" : "favorite-outline"}
-              size={20}
-              color={like ? APP_COLOR.ORANGE : APP_COLOR.GREY}
-            />
-          </View>
         </View>
         <Text style={styles.sizeText}>
-          {shirt.gender || "NAM"}, {shirt.size ? shirt.size : "XS-XXL"}
+           {shirt.size ? shirt.size : "XS-XXL"}
         </Text>
         <Text style={styles.title} numberOfLines={2}>
           {shirt.name}

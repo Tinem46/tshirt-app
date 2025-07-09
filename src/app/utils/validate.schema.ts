@@ -53,11 +53,15 @@ export const RegisterSchema = Yup.object().shape({
   gender: Yup.boolean()
     .required("Không được để trống"),
 });
-
-  export const UpdateUserSchema = Yup.object().shape({
-    firstName: Yup.string().required('Họ và tên Không được để trống'),
-    lastName: Yup.string().required('Họ và tên Không được để trống'),
-    phone: Yup.string().required('Số điện thoại Không được để trống'),
-    gender: Yup.string().required('Số điện thoại Không được để trống'),
-
-  })
+export const UpdateUserSchema = Yup.object().shape({
+  firstName: Yup.string()
+    .required('Vui lòng nhập tên!'),
+  lastName: Yup.string()
+    .required('Vui lòng nhập họ!'),
+  phoneNumber: Yup.string()
+    .required('Vui lòng nhập số điện thoại!')
+    .matches(/^[0-9]{10,11}$/, "Số điện thoại không hợp lệ!"),
+  gender: Yup.string()
+    .oneOf(["male", "female", "other"], "Giới tính không hợp lệ!")
+    .required('Vui lòng chọn giới tính!'),
+});

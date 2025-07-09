@@ -1,175 +1,125 @@
 import LoadingOverlay from "@/components/loading/overlay";
+import ProductListSkeleton from "@/components/skeleton/productListSkeleton";
 import { useCurrentApp } from "@/context/app.context";
 import React, { useEffect, useState } from "react";
-import ContentLoader, { Rect } from "react-content-loader/native";
-import {
-  Dimensions,
-  FlatList,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, Image, StyleSheet, Text, View } from "react-native";
 import Card from "../../components/card/card";
 import FilterBar from "../../components/filterBar/filterBar";
 import { IProduct } from "../types/model";
-import ProductListSkeleton from "@/components/skeleton/productListSkeleton";
-
-type FilterType = {
-  price: string | null;
-  type: string | null;
-  size: string | null;
-  color: string | null;
-  order: string;
-};
+import { fetchProductsAPI } from "../utils/apiall";
 
 const itemsPerPage = 8;
-interface ProductLayoutProps {
-  productType?: string;
-  searchKeyword?: string;
-}
+const defaultFilters = {
+  price: null,
+  type: null,
+  size: null,
+  color: null,
+  order: "",
+};
 
-const { width: sWidth, height: sHeight } = Dimensions.get("window");
-
-const ProductLayout = (props: ProductLayoutProps) => {
-  const { productType = "", searchKeyword = "" } = props;
+const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
   const { product, setProduct } = useCurrentApp();
   const [products, setProducts] = useState<IProduct[]>([]);
+  const [filters, setFilters] = useState(defaultFilters);
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [filters, setFilters] = useState<FilterType>({
-    price: null,
-    type: null,
-    size: null,
-    color: null,
-    order: "",
-  });
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [total, setTotal] = useState(0);
 
-  const fetchTotal = async (): Promise<number> => {
-    const res = await fetch(
-      `https://682f2e5b746f8ca4a4803faf.mockapi.io/product`
-    );
-    let data: IProduct[] = await res.json();
+  // Xây dựng params gửi lên API dựa trên filter và search (giống web)
+  const buildParams = () => {
+    let params: any = {
+      PageNumber: page,
+      PageSize: itemsPerPage,
+      SortDirection: filters.order || "",
+    };
+    if (searchKeyword && searchKeyword.trim())
+      params.Name = searchKeyword.trim();
+    if (productType) params.CategoryId = productType;
+    if (filters.type) params.CategoryId = filters.type;
+    if (filters.size) params.Size = filters.size;
+    if (filters.color) params.Color = filters.color;
 
-    if (productType)
-      data = data.filter((item) => item.category === productType);
-
-    if (searchKeyword.trim())
-      data = data.filter((item) =>
-        item.name.toLowerCase().includes(searchKeyword.toLowerCase())
-      );
-
-    return data.length;
-  };
-
-  const fetchProducts = async (
-    page: number,
-    limit: number,
-    filters: FilterType,
-    searchKeyword: string
-  ): Promise<IProduct[]> => {
-    const res = await fetch(
-      `https://682f2e5b746f8ca4a4803faf.mockapi.io/product?page=${page}&limit=${limit}`
-    );
-    let data: IProduct[] = await res.json();
-
-    if (product) setProduct(data[0]);
-
-    if (productType)
-      data = data.filter((item) => item.category === productType);
-
-    if (searchKeyword.trim())
-      data = data.filter((item) =>
-        item.name.toLowerCase().includes(searchKeyword.toLowerCase())
-      );
-
+    // Lọc giá
     if (filters.price) {
-      data = data.filter((item) => {
-        const price = parseInt(item.price.toString().replace(/[^0-9]/g, ""));
-        switch (filters.price) {
-          case "Giá dưới 100.000đ":
-            return price < 100000;
-          case "100.000đ - 200.000đ":
-            return price >= 100000 && price <= 200000;
-          case "200.000đ - 300.000đ":
-            return price >= 200000 && price <= 300000;
-          case "300.000đ - 500.000đ":
-            return price >= 300000 && price <= 500000;
-          case "Giá trên 500.000đ":
-            return price > 500000;
-          default:
-            return true;
-        }
-      });
+      switch (filters.price) {
+        case "Giá dưới 100.000đ":
+          params.MaxPrice = 100000;
+          break;
+        case "100.000đ - 200.000đ":
+          params.MinPrice = 100000;
+          params.MaxPrice = 200000;
+          break;
+        case "200.000đ - 300.000đ":
+          params.MinPrice = 200000;
+          params.MaxPrice = 300000;
+          break;
+        case "300.000đ - 500.000đ":
+          params.MinPrice = 300000;
+          params.MaxPrice = 500000;
+          break;
+        case "Giá trên 500.000đ":
+          params.MinPrice = 500000;
+          break;
+        default:
+          break;
+      }
     }
-
-    if (filters.size)
-      data = data.filter(
-        (item) => item.sizes && item.sizes.includes(filters.size!)
-      );
-    if (filters.color)
-      data = data.filter(
-        (item) => item.colors && item.colors.includes(filters.color!)
-      );
-
-    if (filters.order === "asc")
-      data = data.sort((a, b) => +a.price - +b.price);
-    if (filters.order === "desc")
-      data = data.sort((a, b) => +b.price - +a.price);
-
-    return data;
+    return params;
   };
 
+  const fetchProducts = async (reset = false) => {
+    try {
+      if (reset) setLoading(true);
+      else setLoadingMore(true);
+
+      const params = buildParams();
+      const response = await fetchProductsAPI(params);
+
+      const data = response?.data?.data || [];
+      const totalCount = response?.data?.totalCount || 0;
+
+      if (reset) {
+        setProducts(data);
+        setPage(2);
+      } else {
+        setProducts((prev) => [...prev, ...data]);
+        setPage((prev) => prev + 1);
+      }
+      setTotal(totalCount);
+      setHasMore(data.length === itemsPerPage);
+    } catch (error) {
+      setProducts([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  // Khi filter/search/productType đổi, fetch lại trang 1
   useEffect(() => {
-    setProducts([]);
     setPage(1);
     setHasMore(true);
-    setLoading(true);
-
-    const load = async () => {
-      const totalCount = await fetchTotal();
-      setTotal(totalCount);
-      const firstPage = await fetchProducts(
-        1,
-        itemsPerPage,
-        filters,
-        searchKeyword
-      );
-      setProducts(firstPage);
-      setHasMore(firstPage.length === itemsPerPage);
-      setPage(2);
-      setLoading(false);
-    };
-
-    load();
+    fetchProducts(true);
   }, [filters, productType, searchKeyword]);
 
-  const loadMore = async () => {
-    if (loadingMore || !hasMore) return;
-    setLoadingMore(true);
-    const more = await fetchProducts(
-      page,
-      itemsPerPage,
-      filters,
-      searchKeyword
-    );
-    setProducts((prev) => [...prev, ...more]);
-    setHasMore(more.length === itemsPerPage);
-    setPage((prev) => prev + 1);
-    setLoadingMore(false);
+  // Load thêm
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchProducts(false);
+    }
   };
 
+  // Khi đổi filter bar
   const handleFilterChange = (key: string, value: string | null) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+    setPage(1);
+    setHasMore(true);
   };
 
-if (loading) {
-  return <ProductListSkeleton />;
-}
+  if (loading) return <ProductListSkeleton />;
 
   return (
     <View style={styles.wrapper}>

@@ -6,7 +6,6 @@ import { useCurrentApp } from "@/context/app.context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link, router } from "expo-router";
 import { Formik } from "formik";
-import { jwtDecode } from "jwt-decode";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Toast from "react-native-root-toast";
@@ -15,70 +14,60 @@ import { loginAPI } from "../utils/apiall";
 import { LoginSchema } from "../utils/validate.schema";
 
 const Login = () => {
-  const [username, setUserName] = useState<string>("");
-  const [Password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const { setAppState } = useCurrentApp();
 
   const handleLogin = async (Email: string, Password: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await loginAPI(Email, Password);
-      console.log("Login response:", response);
+      // Lưu ý: response ở đây là object { isSuccess, data, message }
+      const apiData = response;
+      const isSuccess = apiData?.isSuccess;
+      const token = apiData?.data?.accessToken;
+      const role = apiData?.data?.roles?.[0] || "USER";
+      const userId = apiData?.data?.id;
+      const refreshToken = apiData?.data?.refreshToken;
 
-      // Phần response trả ra sẽ có data.token giống web (nếu login thành công)
-      if (response && response.token) {
-        const { token } = response;
-
-        // Decode token để lấy role, userId
-        const decodedToken = jwtDecode<{ [key: string]: any }>(token);
-        const role =
-          decodedToken[
-            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
-          ] ||
-          decodedToken.role ||
-          "USER";
-        const userId =
-          decodedToken[
-            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
-          ] ||
-          decodedToken["sub"] ||
-          decodedToken["id"] ||
-          null;
-
+      if (isSuccess && token) {
         // Lưu vào AsyncStorage
         await AsyncStorage.setItem("access_token", token);
         await AsyncStorage.setItem("role", role);
-        if (userId) await AsyncStorage.setItem("userId", String(userId));
+        await AsyncStorage.setItem("userId", String(userId));
+        if (refreshToken)
+          await AsyncStorage.setItem("refreshToken", refreshToken);
 
-        // Cập nhật context app state nếu cần
-        setAppState({
+        // Cập nhật context nếu cần
+        setAppState?.({
           token,
           role,
           userId,
-          // ...thêm user info khác nếu cần
+          refreshToken,
         });
+        console.log("Login successful:", { token, role, userId });
 
-        // Điều hướng theo role
+        // Điều hướng theo role (tuỳ chỉnh nếu app có trang riêng)
 
         router.replace("/(tabs)");
         Toast.show("Login successful!", { position: Toast.positions.TOP });
       } else {
-        // Nếu backend trả lỗi
-        const msg =
-          (response && response.message) ||
-          "Login failed. Please check your Email and Password.";
-        Toast.show(msg, { position: Toast.positions.TOP });
+        Toast.show(apiData?.message || "Login failed!", {
+          position: Toast.positions.TOP,
+        });
+        console.error("Login failed:", apiData?.message || "Unknown error");
       }
-    } catch (error) {
-      Toast.show("Login failed. Please check your Email and Password.", {
-        position: Toast.positions.TOP,
-      });
-      console.log(error);
+    } catch (error: any) {
+      let msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Login failed. Please check your Email and Password.";
+      Toast.show(msg, { position: Toast.positions.TOP });
+      console.error("Login error:", msg);
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Formik
@@ -94,33 +83,10 @@ const Login = () => {
           errors,
           touched,
         }) => (
-          // <View style={{ margin: 10 }}>
-          //   <Text>Email</Text>
-          //   <TextInput
-          //     style={{ borderWidth: 1, borderColor: "#ccc" }}
-          //     onChangeText={handleChange("Email")}
-          //     onBlur={handleBlur("Email")}
-          //     value={values.Email}
-          //   />
-          //   {errors.Email && <Text style={{ color: "red" }}>{errors.Email}</Text>}
-          //   <View style={{ marginVertical: 10 }}></View>
-          //   <Text>Password</Text>
-          //   <TextInput
-          //     style={{ borderWidth: 1, borderColor: "#ccc" }}
-          //     onChangeText={handleChange("Password")}
-          //     onBlur={handleBlur("Password")}
-          //     value={values.Password}
-          //   />
-          //   {errors.Password && <Text style={{ color: "red" }}>{errors.Password}</Text>}
-          //   <View style={{ marginVertical: 10 }}></View>
-
-          //   <Button onPress={handleSubmit as any} title="Submit" />
-          // </View>
           <View style={styles.conntainer}>
             <View>
-              <Text style={styles.textTitle}>Sign in </Text>
+              <Text style={styles.textTitle}>Sign in</Text>
             </View>
-
             <ShareInput
               title="Email"
               keyboardType="email-address"
@@ -130,7 +96,6 @@ const Login = () => {
               error={errors.Email}
               touched={touched.Email}
             />
-
             <ShareInput
               title="Password"
               secureTextEntry={true}
@@ -140,8 +105,7 @@ const Login = () => {
               error={errors.Password}
               touched={touched.Password}
             />
-            <View style={{ marginTop: 5 }}></View>
-
+            <View style={{ marginTop: 5 }} />
             <ShareButton
               loading={loading}
               title="Sign in"
@@ -167,7 +131,6 @@ const Login = () => {
                 Quên mật khẩu?
               </Text>
             </View>
-
             <View
               style={{
                 flexDirection: "row",
@@ -200,20 +163,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     gap: 15,
     marginTop: 20,
-  },
-  inputGroup: {
-    padding: 5,
-    gap: 10,
-  },
-  text: {
-    fontSize: 18,
-  },
-  input: {
-    borderColor: "#d0d0d0",
-    borderWidth: 1,
-    paddingHorizontal: 7,
-    paddingVertical: 10,
-    borderRadius: 5,
   },
   textTitle: {
     fontSize: 25,

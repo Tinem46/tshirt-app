@@ -19,8 +19,7 @@ const SignUpPage = () => {
     password: string,
     firstName: string,
     lastName: string,
-
-    gender: boolean = true
+    gender: number // 0=Nam, 1=Nữ
   ) => {
     try {
       setLoading(true);
@@ -31,22 +30,30 @@ const SignUpPage = () => {
         lastName,
         gender
       );
-      console.log(response.data);
-      if (response.data) {
-        alert("Sign up successfully");
-        router.navigate({
-          pathname: "/(auth)/login",
-        });
-      } else {
-        const m = Array.isArray(response.message)
-          ? response.message[0]
-          : response.message;
-        Toast.show(m, {
+      // response.data.userId trả về từ backend (nếu có)
+      const isSuccess = response; // Giả sử backend trả về success: true/false
+      if (isSuccess) {
+        Toast.show("Đăng ký thành công. Vui lòng xác nhận email!", {
           position: Toast.positions.TOP,
         });
+        // Chuyển sang màn xác nhận email, truyền userId & email
+        router.push({
+          pathname: "/(auth)/confirmEmailPage",
+          params: {
+            email,
+            userId: response.data?.data?.id,
+          },
+        });
+      } else {
+        Toast.show("Đăng ký thất bại!", { position: Toast.positions.TOP });
+        console.error("Sign up failed:", response);
       }
     } catch (error) {
-      console.log(error);
+      // Xử lý lỗi
+      Toast.show("Có lỗi xảy ra khi đăng ký!", {
+        position: Toast.positions.TOP,
+      });
+      console.error("Sign up error:", error);
     } finally {
       setLoading(false);
     }
@@ -68,7 +75,7 @@ const SignUpPage = () => {
             values.password,
             values.firstName,
             values.lastName,
-            values.gender
+            values.gender ? 0 : 1 // 0=Nam, 1=Nữ
           );
         }}
       >

@@ -1,10 +1,15 @@
+import {
+  addToCartAPI,
+  getProductDetailAPI,
+  getProductVariantsAPI,
+} from "@/app/utils/apiall";
+import SkeletonDetailProduct from "@/components/skeleton/detailSkeleton";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useRef, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
-  Animated,
   Dimensions,
-  Easing,
   Image,
   Modal,
   ScrollView,
@@ -13,285 +18,381 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-import { ICartItem, IProduct } from "@/app/types/model";
-import SkeletonDetailProduct from "@/components/skeleton/detailSkeleton";
-import { useCurrentApp } from "@/context/app.context";
-import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { APP_COLOR } from "../../utils/constant";
 
 const { width } = Dimensions.get("window");
 
-const images = [
-  "https://dosi-in.com/images/detailed/42/CDL10_1.jpg",
-  "https://dosi-in.com/images/detailed/42/CDL10_2.jpg",
-  "https://dosi-in.com/images/detailed/42/CDL10_3.jpg",
+const MATERIAL_ENUM = [
+  "Cotton", // 0
+  "Polyester", // 1
+  "Linen", // 2
+  "Silk", // 3
+  "Khác", // 4
 ];
+const SEASON_ENUM = [
+  "Xuân", // 0
+  "Hạ", // 1
+  "Thu", // 2
+  "Đông", // 3
+  "All", // 4
+];
+const COLOR_ENUM_MAP = {
+  0: "Black",
+  1: "Red",
+  2: "Blue",
+  3: "Green",
+  4: "White",
+};
+const SIZE_ENUM_MAP = { 1: "S", 2: "M", 3: "L", 4: "XL", 5: "XXL" };
 
-const sizes = ["XS", "S", "M", "L", "XL"];
+function getColorName(color: any) {
+  if (typeof color === "string") return color;
+  if (typeof color === "number" && COLOR_ENUM_MAP.hasOwnProperty(color))
+    return COLOR_ENUM_MAP[color as keyof typeof COLOR_ENUM_MAP];
+  return color?.toString() || "";
+}
+function getSizeName(size: any) {
+  if (typeof size === "string") return size;
+  if (SIZE_ENUM_MAP[size as keyof typeof SIZE_ENUM_MAP] !== undefined)
+    return SIZE_ENUM_MAP[size as keyof typeof SIZE_ENUM_MAP];
+  return size?.toString() || "";
+}
+
+const fallbackImg = "https://dosi-in.com/images/detailed/42/CDL10_1.jpg";
 
 const DetailPage = () => {
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [product, setProduct] = useState<any>(null);
+  const [variants, setVariants] = useState<any[]>([]);
+  const [selectedSize, setSelectedSize] = useState<any>(null);
+  const [selectedColor, setSelectedColor] = useState<any>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
-
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [product, setProduct] = useState<IProduct | null>(null);
-  const { cart, setCart, setBuyNowItem } = useCurrentApp(); // thêm dòng này
   const [quantity, setQuantity] = useState(1);
-  const flyAnim = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const [showFlyImage, setShowFlyImage] = useState(false);
-
-  const startFlyToCartAnimation = () => {
-    setShowFlyImage(true);
-    flyAnim.setValue({ x: 150, y: 300 }); // Vị trí bắt đầu (ảnh sản phẩm)
-
-    Animated.timing(flyAnim, {
-      toValue: { x: width - 50, y: 0 }, // Vị trí giỏ hàng (top-right)
-      duration: 600,
-      easing: Easing.inOut(Easing.quad),
-      useNativeDriver: true,
-    }).start(() => {
-      setShowFlyImage(false); // Ẩn sau animation
-    });
-  };
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      fetch(`https://682f2e5b746f8ca4a4803faf.mockapi.io/product/${id}`) // <-- Thay bằng mock API thực tế của bạn
-        .then((res) => res.json())
-        .then((data) => setProduct(data))
-        .catch((err) => console.error(err));
-    }
+    if (!id) return;
+    setLoading(true);
+
+    Promise.all([getProductDetailAPI(id), getProductVariantsAPI(id)])
+      .then(([prodRes, variantRes]) => {
+        console.log("Product response:", prodRes);
+        console.log("Variants response:", variantRes);
+        const prodData =
+          prodRes?.data?.data ||
+          prodRes?.data || // fallback nếu API thay đổi
+          {};
+        const variantData =
+          variantRes?.data?.data ||
+          variantRes?.data || // fallback nếu API thay đổi
+          [];
+        setProduct({
+          ...prodData,
+          images: Array.isArray(prodData.images)
+            ? prodData.images
+            : prodData.images
+            ? [prodData.images]
+            : [],
+        });
+        console.log("Product data:", prodData);
+        console.log("Variants data:", variantData);
+        setVariants(variantData);
+      })
+      .catch(() => {
+        setProduct(null);
+        setVariants([]);
+      })
+      .finally(() => setLoading(false));
   }, [id]);
 
-  if (!product) {
-    return <SkeletonDetailProduct />;
-  }
+  // --- Size / Color logic giống web ---
+  const uniqueColors = [...new Set(variants.map((v) => v.color))];
+  const uniqueSizes = [...new Set(variants.map((v) => v.size))];
 
-  const handleAddToCart = () => {
-    if (!selectedSize) {
-      Alert.alert("Vui lòng chọn size trước khi thêm vào giỏ.");
+  const filteredColors = selectedSize
+    ? [
+        ...new Set(
+          variants.filter((v) => v.size === selectedSize).map((v) => v.color)
+        ),
+      ]
+    : uniqueColors;
+
+  const filteredSizes = selectedColor
+    ? [
+        ...new Set(
+          variants.filter((v) => v.color === selectedColor).map((v) => v.size)
+        ),
+      ]
+    : uniqueSizes;
+
+  // Handler thêm vào giỏ hàng
+  const handleAddToCart = async () => {
+    if (filteredSizes.length > 0 && !selectedSize) {
+      Alert.alert("Vui lòng chọn kích thước!");
       return;
     }
-
-    const existingIndex = cart.findIndex(
-      (item) => item.product.id === product.id && item.size === selectedSize
-    );
-
-    let updatedCart: ICartItem[];
-
-    if (existingIndex !== -1) {
-      // Đã có, tăng số lượng
-      const updatedItem = {
-        ...cart[existingIndex],
-        quantity: cart[existingIndex].quantity + quantity,
-      };
-      updatedCart = [...cart];
-      updatedCart[existingIndex] = updatedItem;
-    } else {
-      // Chưa có, thêm mới
-      updatedCart = [
-        ...cart,
-        {
-          product,
-          size: selectedSize,
-          quantity,
-        },
-      ];
-    }
-
-    setCart(updatedCart);
-    startFlyToCartAnimation();
-  };
-
-  const handleBuyNow = () => {
-    if (!selectedSize) {
-      Alert.alert("Vui lòng chọn size trước khi mua.");
+    if (
+      filteredColors.length > 0 &&
+      (selectedColor === null || selectedColor === undefined)
+    ) {
+      Alert.alert("Vui lòng chọn màu sắc!");
       return;
     }
-
-    const item: ICartItem = {
-      product,
-      size: selectedSize,
+    if (!product?.id) {
+      Alert.alert("Không xác định được sản phẩm để lấy giá");
+      return;
+    }
+    let productVariantId: string | null = null;
+    if (variants.length > 0) {
+      const matched = variants.find(
+        (v) => v.size === selectedSize && v.color === selectedColor
+      );
+      if (matched) productVariantId = matched.id;
+      else {
+        Alert.alert("Không tìm thấy biến thể phù hợp!");
+        return;
+      }
+    }
+    const cartItemPayload = {
+      productId: product.id,
+      productVariantId: productVariantId,
       quantity,
     };
-
-    setBuyNowItem(item);
-    router.push("/order/checkout");
+    try {
+      await addToCartAPI(cartItemPayload);
+      Alert.alert("Thêm vào giỏ hàng thành công!");
+      router.push("/product/cart");
+    } catch (error: any) {
+      Alert.alert(
+        error?.response?.data?.message || "Đã xảy ra lỗi. Vui lòng thử lại."
+      );
+    }
   };
 
-  return (
-    <>
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#fff", marginTop: 50 }}>
-        <ScrollView style={styles.container}>
-          {/* Ảnh chính */}
-          <TouchableOpacity onPress={() => setModalVisible(true)}>
-            <Image
-              source={{ uri: images[selectedIndex] }}
-              style={styles.mainImage}
-            />
-          </TouchableOpacity>
+  if (loading) return <SkeletonDetailProduct />;
+  if (!product) {
+    return (
+      <View style={{ padding: 20 }}>
+        <Text>Không tìm thấy sản phẩm.</Text>
+      </View>
+    );
+  }
 
-          {/* Ảnh thumbnail */}
+  // --- UI ---
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff", marginTop: 50 }}>
+      <ScrollView style={styles.container}>
+        {/* Ảnh chính */}
+        <TouchableOpacity onPress={() => setModalVisible(true)}>
+          <Image
+            source={{
+              uri: product.images?.[selectedIndex] || fallbackImg,
+            }}
+            style={styles.mainImage}
+          />
+        </TouchableOpacity>
+
+        {/* Thumbnail */}
+        {product.images && product.images.length > 1 && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.thumbnailContainer}
           >
-            {images.map((img, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => setSelectedIndex(index)}
-              >
+            {product.images.map((img: string, idx: number) => (
+              <TouchableOpacity key={idx} onPress={() => setSelectedIndex(idx)}>
                 <Image
                   source={{ uri: img }}
                   style={[
                     styles.thumbnail,
-                    selectedIndex === index && styles.activeThumbnail,
+                    selectedIndex === idx && styles.activeThumbnail,
                   ]}
                 />
               </TouchableOpacity>
             ))}
           </ScrollView>
+        )}
 
-          {/* Tên, giá */}
-          <View style={styles.content}>
-            <Text style={styles.title}> {product.name}</Text>
-            <Text style={styles.price}>
-              {Number(product.price).toLocaleString()} VND
-            </Text>
-            <Text style={styles.sectionTitle}>Số lượng:</Text>
-            <View style={styles.quantityContainer}>
-              <TouchableOpacity
-                onPress={() => setQuantity((q) => Math.max(1, q - 1))}
-                style={styles.quantityButton}
-              >
-                <Text style={styles.quantityButtonText}>-</Text>
-              </TouchableOpacity>
-              <Text style={styles.quantityText}>{quantity}</Text>
-              <TouchableOpacity
-                onPress={() => setQuantity((q) => q + 1)}
-                style={styles.quantityButton}
-              >
-                <Text style={styles.quantityButtonText}>+</Text>
-              </TouchableOpacity>
-            </View>
+        <View style={styles.content}>
+          {/* Tên + Giá */}
+          <Text style={styles.title}>{product?.name ?? "Không xác định"}</Text>
+          <Text style={styles.price}>
+            {typeof product.price === "number"
+              ? product.price.toLocaleString()
+              : "Liên hệ"}{" "}
+            VND
+          </Text>
 
-            {/* Chọn size */}
-            <Text style={styles.sectionTitle}>Chọn size:</Text>
-            <View style={styles.sizeContainer}>
-              {sizes.map((size) => (
-                <TouchableOpacity
-                  key={size}
-                  style={[
-                    styles.sizeButton,
-                    selectedSize === size && styles.sizeButtonSelected,
-                  ]}
-                  onPress={() => setSelectedSize(size)}
-                >
-                  <Text
+          {/* Chọn màu (luôn trước, theo bản web!) */}
+          {filteredColors.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>Chọn màu:</Text>
+              <View style={[styles.sizeContainer, { marginBottom: 10 }]}>
+                {filteredColors.map((color, idx) => (
+                  <TouchableOpacity
+                    key={color + idx}
                     style={[
-                      styles.sizeText,
-                      selectedSize === size && styles.sizeTextSelected,
+                      styles.sizeButton,
+                      selectedColor === color && styles.sizeButtonSelected,
+                      {
+                        backgroundColor:
+                          selectedColor === color ? APP_COLOR.ORANGE : "#fff",
+                        borderColor: "#999",
+                      },
                     ]}
+                    onPress={() => {
+                      setSelectedColor(color);
+                      // Reset size nếu size hiện tại không còn hợp lệ
+                      if (
+                        selectedSize &&
+                        !variants.some(
+                          (v) => v.color === color && v.size === selectedSize
+                        )
+                      ) {
+                        setSelectedSize(null);
+                      }
+                    }}
                   >
-                    {size}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    <Text
+                      style={[
+                        styles.sizeText,
+                        selectedColor === color && styles.sizeTextSelected,
+                        { color: selectedColor === color ? "#fff" : "#111" },
+                      ]}
+                    >
+                      {getColorName(color)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
 
-            {/* Nút hành động */}
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={styles.cartButton}
-                onPress={handleAddToCart}
-              >
-                <Text style={styles.buttonText}>Thêm Vào Giỏ</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.buyButton} onPress={handleBuyNow}>
-                <Text style={styles.buttonText}>Mua Ngay</Text>
-              </TouchableOpacity>
-            </View>
+          {/* Chọn Size */}
+          {filteredSizes.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>Chọn size:</Text>
+              <View style={styles.sizeContainer}>
+                {filteredSizes.map((size) => (
+                  <TouchableOpacity
+                    key={size}
+                    style={[
+                      styles.sizeButton,
+                      selectedSize === size && styles.sizeButtonSelected,
+                    ]}
+                    onPress={() => setSelectedSize(size)}
+                  >
+                    <Text
+                      style={[
+                        styles.sizeText,
+                        selectedSize === size && styles.sizeTextSelected,
+                      ]}
+                    >
+                      {getSizeName(size)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
 
-            {/* Giao hàng */}
-            <View style={styles.deliveryBox}>
-              <Text style={styles.sectionTitle}>Khu vực giao hàng</Text>
-              <Text style={styles.address}>
-                Giao tại Hồ Chí Minh - Chọn lại
-              </Text>
-              <Text style={styles.storeTitle}>Cửa hàng còn hàng:</Text>
-              {[
-                "Quận 10: 561 Sư Vạn Hạnh",
-                "Quận 1: 26 Lý Tự Trọng",
-                "Quận 1: 160 Nguyễn Cư Trinh",
-                "Gò Vấp: 326 Quang Trung",
-              ].map((store, idx) => (
-                <Text key={idx} style={styles.storeItem}>
-                  ✓ {store}
-                </Text>
-              ))}
-            </View>
-
-            {/* Chi tiết */}
-            <View style={styles.detailBox}>
-              <Text style={styles.sectionTitle}>Chi tiết sản phẩm:</Text>
-              <Text>- Kích thước: XS - S - M - L - XL</Text>
-              <Text>- Chất liệu: Cotton</Text>
-              <Text>- Regular fit</Text>
-              <Text>- In kỹ thuật cao cấp</Text>
-            </View>
+          {/* Số lượng */}
+          <Text style={styles.sectionTitle}>Số lượng:</Text>
+          <View style={styles.quantityContainer}>
+            <TouchableOpacity
+              onPress={() => setQuantity((q) => Math.max(1, q - 1))}
+              style={styles.quantityButton}
+            >
+              <Text style={styles.quantityButtonText}>-</Text>
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{quantity}</Text>
+            <TouchableOpacity
+              onPress={() => setQuantity((q) => q + 1)}
+              style={styles.quantityButton}
+            >
+              <Text style={styles.quantityButtonText}>+</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Modal ảnh lớn */}
-          <Modal visible={modalVisible} transparent={true}>
-            <View style={styles.modalContainer}>
-              <Image
-                source={{ uri: images[selectedIndex] }}
-                style={styles.fullImage}
-                resizeMode="contain"
-              />
-              <TouchableOpacity
-                style={styles.closeIcon}
-                onPress={() => setModalVisible(false)}
-              >
-                <Ionicons name="close-circle" size={36} color="white" />
-              </TouchableOpacity>
-            </View>
-          </Modal>
-          {showFlyImage && (
-            <Animated.Image
-              source={{ uri: images[selectedIndex] }}
-              style={{
-                width: 50,
-                height: 50,
-                borderRadius: 10,
-                position: "absolute",
-                top: 0,
-                left: 0,
-                transform: flyAnim.getTranslateTransform(),
-                zIndex: 1000,
+          {/* Nút hành động */}
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={styles.cartButton}
+              onPress={handleAddToCart}
+            >
+              <Text style={styles.buttonText}>Thêm Vào Giỏ</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.buyButton}
+              onPress={() => {
+                handleAddToCart();
+                router.push("/order/checkout");
               }}
+            >
+              <Text style={styles.buttonText}>Mua Ngay</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Chi tiết sản phẩm */}
+          <View style={styles.detailBox}>
+            <Text style={styles.sectionTitle}>Chi tiết sản phẩm:</Text>
+            <Text>
+              - Chất liệu:{" "}
+              {typeof product.material === "number"
+                ? MATERIAL_ENUM[product.material] || "Không xác định"
+                : "Không xác định"}
+            </Text>
+            <Text>
+              - Kích thước:{" "}
+              {uniqueSizes.length > 0
+                ? uniqueSizes.map(getSizeName).join(" - ")
+                : "Không có"}
+            </Text>
+            <Text>
+              - Màu:{" "}
+              {uniqueColors.length > 0
+                ? uniqueColors.map(getColorName).join(" - ")
+                : "Không có"}
+            </Text>
+            <Text>
+              - Season:{" "}
+              {typeof product.season === "number"
+                ? SEASON_ENUM[product.season] || "Không xác định"
+                : "Không xác định"}
+            </Text>
+            <Text>- SKU: {product.sku || "Không có"}</Text>
+            <Text>- Mô tả: {product.description || "Không có"}</Text>
+          </View>
+        </View>
+
+        {/* Modal ảnh lớn */}
+        <Modal visible={modalVisible} transparent={true}>
+          <View style={styles.modalContainer}>
+            <Image
+              source={{
+                uri: product.images?.[selectedIndex] || fallbackImg,
+              }}
+              style={styles.fullImage}
+              resizeMode="contain"
             />
-          )}
-        </ScrollView>
-      </SafeAreaView>
-    </>
+            <TouchableOpacity
+              style={styles.closeIcon}
+              onPress={() => setModalVisible(false)}
+            >
+              <Ionicons name="close-circle" size={36} color="white" />
+            </TouchableOpacity>
+          </View>
+        </Modal>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  mainImage: {
-    width: "100%",
-    height: width,
-    backgroundColor: "#eee",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  mainImage: { width: "100%", height: width, backgroundColor: "#eee" },
   thumbnailContainer: {
     flexDirection: "row",
     marginVertical: 10,
@@ -306,18 +407,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
   },
-  activeThumbnail: {
-    borderColor: "black",
-    borderWidth: 2,
-  },
-  content: {
-    paddingHorizontal: 15,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 5,
-  },
+  activeThumbnail: { borderColor: "black", borderWidth: 2 },
+  content: { paddingHorizontal: 15 },
+  title: { fontSize: 20, fontWeight: "600", marginBottom: 5 },
   price: {
     fontSize: 18,
     fontWeight: "bold",
@@ -330,11 +422,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 5,
   },
-  sizeContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
+  sizeContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   sizeButton: {
     borderWidth: 1,
     borderColor: "#999",
@@ -348,14 +436,8 @@ const styles = StyleSheet.create({
     backgroundColor: APP_COLOR.ORANGE,
     borderColor: APP_COLOR.ORANGE,
   },
-  sizeText: {
-    fontSize: 14,
-    color: "#333",
-  },
-  sizeTextSelected: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
+  sizeText: { fontSize: 14, color: "#333" },
+  sizeTextSelected: { color: "#fff", fontWeight: "bold" },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -364,7 +446,7 @@ const styles = StyleSheet.create({
   cartButton: {
     flex: 1,
     marginRight: 10,
-    backgroundColor: "#ddd",
+    backgroundColor: "orange",
     paddingVertical: 12,
     borderRadius: 8,
   },
@@ -374,48 +456,16 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
   },
-  buttonText: {
-    textAlign: "center",
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  deliveryBox: {
-    backgroundColor: "#f9f9f9",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
-  address: {
-    fontSize: 14,
-    color: "#444",
-    marginBottom: 6,
-  },
-  storeTitle: {
-    marginTop: 8,
-    fontWeight: "bold",
-  },
-  storeItem: {
-    fontSize: 13,
-    marginVertical: 2,
-  },
-  detailBox: {
-    paddingBottom: 40,
-  },
+  buttonText: { textAlign: "center", fontWeight: "bold", color: "#fff" },
+  detailBox: { paddingBottom: 40 },
   modalContainer: {
     flex: 1,
     backgroundColor: "#000",
     justifyContent: "center",
     alignItems: "center",
   },
-  fullImage: {
-    width: "100%",
-    height: "80%",
-  },
-  closeIcon: {
-    position: "absolute",
-    top: 40,
-    right: 20,
-  },
+  fullImage: { width: "100%", height: "80%" },
+  closeIcon: { position: "absolute", top: 40, right: 20 },
   quantityContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -429,14 +479,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  quantityButtonText: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  quantityText: {
-    marginHorizontal: 15,
-    fontSize: 16,
-  },
+  quantityButtonText: { fontSize: 18, fontWeight: "bold" },
+  quantityText: { marginHorizontal: 15, fontSize: 16 },
 });
 
 export default DetailPage;

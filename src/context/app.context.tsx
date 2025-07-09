@@ -8,14 +8,17 @@ interface AppContextType {
   setAppState: (v: any) => void;
   cart: ICartItem[];
   setCart: (v: any) => void;
-  likeUpdated: boolean;
-  setLikeUpdated: (v: boolean) => void;
   product: IProduct | null;
   setProduct: (v: IProduct | null) => void;
-  likedProductIds: string[];
-  setLikedProductIds: (ids: string[]) => void;
   buyNowItem: ICartItem | null;
   setBuyNowItem: (item: ICartItem | null) => void;
+  checkoutData: {
+    userDetails: any;
+    cartSummary: any;
+    cartId: string | null;
+    cart: any[];
+  };
+  setCheckoutData: (v: any) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -39,11 +42,14 @@ export const AppProvider = (props: Iprops) => {
   const [theme, setTheme] = useState<string>("");
   const [appState, setAppState] = useState<ILogin | null>(null);
   const [cart, setCart] = useState<ICartItem[]>([]);
-
-  const [likeUpdated, setLikeUpdated] = useState<boolean>(false);
   const [product, setProduct] = useState<IProduct | null>(null);
-  const [likedProductIds, setLikedProductIdsState] = useState<string[]>([]);
   const [buyNowItem, setBuyNowItem] = useState<ICartItem | null>(null);
+  const [checkoutData, setCheckoutData] = useState({
+    userDetails: null,
+    cartSummary: null,
+    cartId: null,
+    cart: [],
+  });
 
   return (
     <AppContext.Provider
@@ -54,14 +60,12 @@ export const AppProvider = (props: Iprops) => {
         setAppState,
         cart,
         setCart,
-        likeUpdated,
-        setLikeUpdated,
         product,
         setProduct,
-        likedProductIds,
-        setLikedProductIds: setLikedProductIdsState,
         buyNowItem,
         setBuyNowItem,
+        checkoutData,
+        setCheckoutData,
       }}
     >
       {props.children}
