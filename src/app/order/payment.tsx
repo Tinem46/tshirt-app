@@ -15,110 +15,141 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Bạn có thể lấy data từ context hoặc params, ở đây lấy từ context (chuẩn best practice)
 const PaymentPage = () => {
-  const { checkoutData } = useCurrentApp();
+  const { checkoutData, selectedCoupon, userCoupons, setSelectedCoupon } =
+    useCurrentApp();
   const {
-    userDetails,
-    cartSummary: summaryInit,
-    cart,
+    cart = [],
+    userDetails = {},
+    cartSummary = {},
     cartId,
   } = checkoutData || {};
 
-  const [shippingMethods, setShippingMethods] = useState<any[]>([]);
-  const [shippingMethodId, setShippingMethodId] = useState<string | null>(null);
-  const [paymentType, setPaymentType] = useState<"COD" | "VNPAY">("COD");
+  const [shippingMethods, setShippingMethods] = useState([]);
+  const [shippingMethodId, setShippingMethodId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Không fetch lại cartSummary! Sử dụng đúng giá trị từ checkout
-  const [summary, setSummary] = useState<any>(summaryInit || {});
+  const enrichCartItems = (cart) => {
+    return cart.map((item) => {
+      const detail = item.detail || {};
+      return {
+        ...item,
+        productId: item.productId ?? detail.productId ?? null,
+        name: item.name ?? detail.productName ?? "",
+        image: item.image ?? detail.imageUrl ?? "",
+        productVariantId: item.productVariantId ?? detail.id ?? null,
+        productVariantName: item.productVariantName ?? detail.variantSku ?? "",
+        selectedColor: item.selectedColor ?? detail.color ?? "",
+        selectedSize: item.selectedSize ?? detail.size ?? "",
+        unitPrice: item.unitPrice ?? detail.price ?? 0,
+        quantity: item.quantity,
+      };
+    });
+  };
 
-  // Lấy shipping methods
+  // Lấy phương thức giao hàng
   useEffect(() => {
     const fetchShipping = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
         const res = await getShippingMethodsAPI();
-        setShippingMethods(res.data);
-        console.log("Shipping methods:", res);
+        setShippingMethods(res?.data?.data || res?.data || []);
       } catch {
         Alert.alert("Không thể tải phương thức vận chuyển");
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
     fetchShipping();
   }, []);
+  useEffect(() => {
+    console.log("Cart123:", cart);
+  }, [cart]);
 
-  // Tính lại estimatedTotal khi đổi shipping (giống web, chỉ tính lại ở client)
+  // Tính lại phí và tổng tiền
   const shippingFee =
-    (Array.isArray(shippingMethods)
-      ? shippingMethods.find((x) => x.id === shippingMethodId)?.fee
-      : undefined) ??
-    summary?.estimatedShipping ??
+    shippingMethods.find((x) => x.id === shippingMethodId)?.fee ??
+    cartSummary?.estimatedShipping ??
     0;
   const estimatedTotal =
-    (summary?.estimatedTotal || 0) +
+    (cartSummary?.totalAmount || 0) +
     shippingFee -
-    (summary?.estimatedShipping || 0);
+    (cartSummary?.estimatedShipping || 0);
 
   // Đặt hàng
   const handlePlaceOrder = async () => {
     if (!shippingMethodId) {
-      Alert.alert("Thiếu thông tin", "Vui lòng chọn phương thức giao hàng!");
+      Alert.alert("Vui lòng chọn phương thức vận chuyển!");
       return;
     }
-    if (!paymentType) {
-      Alert.alert("Thiếu thông tin", "Vui lòng chọn phương thức thanh toán!");
-      return;
-    }
-    console.log("Phone number gửi lên:", userDetails.phone_number);
-    console.log("OrderItems gửi lên:", cart);
-
-    const payload = {
-      userAddressId: null,
-      newAddress: {
-        receiverName: userDetails.fullname,
-        phone: userDetails.phone_number,
-        detailAddress: userDetails.specific_Address,
-        ward: userDetails.ward,
-        district: userDetails.district,
-        province: userDetails.country,
-        postalCode: "",
-        isDefault: false,
-      },
-      customerNotes: userDetails.additionalInfo,
-      couponId: null,
-      shippingMethodId,
-      orderItems: cart.map((item: any) => ({
-        cartItemId: item.id,
-        productId: item.productId,
-        customDesignId: item.customDesignId || null,
-        productVariantId: item.productVariantId || null,
-        itemName: item.name,
-        selectedColor: item.selectedColor || null,
-        selectedSize: item.selectedSize || null,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-      })),
-      paymentType,
-    };
+    setLoading(true);
 
     try {
-      setLoading(true);
+      const enrichedCart = enrichCartItems(cart);
+
+      const payload = {
+        userAddressId: null,
+        newAddress: {
+          receiverName: userDetails.fullname,
+          phone: userDetails.phone_number,
+          detailAddress: userDetails.specific_Address,
+          ward: userDetails.ward,
+          district: userDetails.district,
+          province: userDetails.country,
+          postalCode: "",
+          isDefault: false,
+        },
+        customerNotes: userDetails.additionalInfo,
+        couponId: selectedCoupon?.id || null,
+        shippingMethodId,
+
+        orderItems: enrichedCart.map((item) => ({
+          cartItemId: item.id,
+          productId: item.productId,
+          customDesignId: item.customDesignId ?? null,
+          productVariantId: item.productVariantId,
+          itemName: item.name,
+          selectedColor: item.selectedColor,
+          selectedSize: item.selectedSize,
+          image: item.image,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        paymentMethod: 1, // Chỉ hỗ trợ COD
+        paymentDescription: "Thanh toán khi nhận hàng",
+      };
+
+      console.log("OrderItems gửi đi:", payload.orderItems);
+      console.log("Payload đặt hàng:", JSON.stringify(payload, null, 2));
+
       const res = await placeOrderAPI(payload);
-      console.log("Kết quả đặt hàng:", res);
-      const orderId = res.id;
-      console.log("OrderId trả về từ API:", orderId); // <--- LOG ORDER ID
+      const orderId =
+        res?.data?.order?.id ||
+        res?.data?.id ||
+        res?.data?.data?.id ||
+        res?.id ||
+        null;
+
+      console.log("Order API response:", JSON.stringify(res, null, 2));
+      if (!orderId) {
+        Alert.alert("Không thể đặt hàng, vui lòng thử lại sau!");
+        return;
+      }
 
       Alert.alert("Đặt hàng thành công!");
-      router.push({
+      router.replace({
         pathname: "/order/orderSuccessPage",
-        params: { orderId }, // Truyền orderId qua params
+        params: { orderId },
       });
-    } catch (err) {
-      Alert.alert("Đặt hàng thất bại! Vui lòng thử lại.");
-      console.log("Lỗi đặt hàng:", err);
+    } catch (error: any) {
+      Alert.alert("Đặt hàng thất bại!", "Vui lòng thử lại.");
+      // Log toàn bộ error để debug chính xác lỗi gì:
+      console.error("Error placing order:", {
+        message: error.message,
+        response: error.response ? error.response.data : null,
+        status: error.response ? error.response.status : null,
+        headers: error.response ? error.response.headers : null,
+        config: error.config,
+      });
     } finally {
       setLoading(false);
     }
@@ -147,7 +178,7 @@ const PaymentPage = () => {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: "500" }}>
-                    {m.name} ({m.description})
+                    {m.name} {m.description ? `(${m.description})` : ""}
                   </Text>
                   <Text style={{ color: "#888", fontSize: 13 }}>
                     Phí: {m.fee ? `${m.fee.toLocaleString()} VND` : "Miễn phí"}
@@ -161,60 +192,79 @@ const PaymentPage = () => {
           )}
         </View>
 
-        {/* PAYMENT */}
+        {/* PAYMENT - chỉ COD */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Chọn phương thức thanh toán</Text>
-          {["COD", "VNPAY"].map((type) => (
-            <TouchableOpacity
-              key={type}
-              style={[
-                styles.optionRow,
-                paymentType === type && styles.selectedOption,
-              ]}
-              onPress={() => setPaymentType(type as any)}
-            >
-              <Text style={{ fontWeight: "500" }}>
-                {type === "COD"
-                  ? "Thanh toán khi nhận hàng (COD)"
-                  : "VNPay (ATM/QR)"}
-              </Text>
-              {paymentType === type && (
-                <Ionicons name="checkmark-circle" size={22} color="#111" />
-              )}
-            </TouchableOpacity>
-          ))}
+          <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
+          <TouchableOpacity
+            style={[
+              styles.optionRow,
+              true && styles.selectedOption, // luôn chọn
+            ]}
+            activeOpacity={1}
+          >
+            <Text style={{ fontWeight: "500" }}>
+              Thanh toán khi nhận hàng (COD)
+            </Text>
+            <Ionicons name="checkmark-circle" size={22} color="#111" />
+          </TouchableOpacity>
+        </View>
+
+        {/* COUPON */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mã giảm giá</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {(userCoupons || []).map((c) => (
+              <TouchableOpacity
+                key={c.id}
+                style={[
+                  styles.couponTag,
+                  selectedCoupon?.id === c.id && styles.selectedCoupon,
+                ]}
+                onPress={() => setSelectedCoupon(c)}
+              >
+                <Text
+                  style={{
+                    color: selectedCoupon?.id === c.id ? "#fff" : "#222",
+                  }}
+                >
+                  {c.code} - {c.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {/* ORDER SUMMARY */}
         <View style={styles.summaryBlock}>
           <Text style={styles.summaryTitle}>Chi tiết đơn hàng</Text>
-          {cart.map((item: any) => (
+          {(cart || []).map((item) => (
             <View key={item.id} style={styles.summaryRow}>
-              <Image source={{ uri: item.image }} style={styles.summaryImg} />
+              <Image
+                source={{ uri: item.image || item.detail?.imageUrl }}
+                style={styles.summaryImg}
+              />
               <View style={{ flex: 1 }}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemDetail}>
-                  x {item.quantity}
-                  {item.selectedColor ? ` - ${item.selectedColor}` : ""}
-                  {item.selectedSize ? ` - ${item.selectedSize}` : ""}
+                <Text style={styles.itemName}>
+                  {item.name || item.itemName || item.detail?.productName || ""}
                 </Text>
+                <Text style={styles.itemDetail}>x {item.quantity}</Text>
               </View>
               <Text style={styles.itemPrice}>
                 {(item.unitPrice * item.quantity).toLocaleString()} VND
               </Text>
             </View>
           ))}
-         
+
+          <View style={styles.totalsRow}>
+            <Text style={styles.totalsLabel}>Subtotal</Text>
+            <Text style={styles.totalsValue}>
+              {(cartSummary?.totalAmount || 0).toLocaleString()} VND
+            </Text>
+          </View>
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Shipping</Text>
             <Text style={styles.totalsValue}>
               {shippingFee.toLocaleString()} VND
-            </Text>
-          </View>
-          <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>Tax</Text>
-            <Text style={styles.totalsValue}>
-              {summary?.estimatedTax?.toLocaleString() || 0} VND
             </Text>
           </View>
           <View style={[styles.totalsRow, { marginTop: 7 }]}>
@@ -230,7 +280,9 @@ const PaymentPage = () => {
           onPress={handlePlaceOrder}
           disabled={loading}
         >
-          <Text style={styles.orderBtnText}>Đặt hàng</Text>
+          <Text style={styles.orderBtnText}>
+            {loading ? "Đang đặt hàng..." : "Đặt hàng"}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -239,7 +291,7 @@ const PaymentPage = () => {
 
 export default PaymentPage;
 
-// ==== STYLE ====
+// ==== STYLE (giữ nguyên) ====
 const styles = StyleSheet.create({
   root: { flex: 1, padding: 14, backgroundColor: "#e5e2e2" },
   section: {
@@ -274,6 +326,21 @@ const styles = StyleSheet.create({
     borderColor: "#e4e5f2",
   },
   selectedOption: { borderColor: "#111", backgroundColor: "#ececec" },
+  couponTag: {
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    backgroundColor: "#f4f4f4",
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: "#aaa",
+    marginRight: 10,
+    marginBottom: 6,
+  },
+  selectedCoupon: {
+    backgroundColor: "#111",
+    borderColor: "#111",
+    color: "#fff",
+  },
   summaryBlock: {
     backgroundColor: "#f7f8fa",
     borderRadius: 12,

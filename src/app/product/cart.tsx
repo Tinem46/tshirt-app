@@ -40,30 +40,30 @@ const CartPage = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [cartId, setCartId] = useState<string | null>(null);
+  const { setCheckoutData } = useCurrentApp();
 
-  // Lấy giỏ hàng & details variant
+  // Lấy giỏ hàng & chi tiết variant
   const fetchCart = async () => {
     setLoading(true);
     try {
       const res = await getCartAPI();
-      console.log("Full Cart response:", res);
-      console.log("Cart data:", res.data);
-      const cartItems = res;
-      setCartId(res.id);
-      // Lấy chi tiết variant cho từng item (nếu có)
+      // Chuẩn hóa cho dạng array, tuỳ backend có thể là res.data hoặc res.data.data
+      const cartItems = res || [];
+      setCartId(res?.id || null);
+      console.log("Cart items:", cartItems);
+
+      // Lấy chi tiết variant từng item (nếu có)
       const details = await Promise.all(
-        cartItems.map(async (item: any) => {
+        (Array.isArray(cartItems) ? cartItems : []).map(async (item: any) => {
           let detail = {};
           if (item.productVariantId) {
             try {
-              console.log("Fetching variant:", item.productVariantId);
               const resVariant = await getProductVariantAPI(
                 item.productVariantId
               );
-              console.log("Variant detail:", resVariant.data);
-              detail = resVariant.data?.data || {};
+              detail = resVariant.data || {};
+              console.log("Variant detail:", detail);
             } catch (err) {
-              console.log("Error fetching variant", err);
               detail = {};
             }
           }
@@ -73,10 +73,13 @@ const CartPage = () => {
       setCart(cartItems);
       setCartDetails(details);
       setSelectedKeys(details.map((x) => x.id));
+      console.log("Cart details:", details);
+      console.log("Cart :", cart);
     } catch (e) {
       setCart([]);
       setCartDetails([]);
       Alert.alert("Lỗi", "Không thể tải giỏ hàng!");
+      console.log("Cart error:", e);
     }
     setLoading(false);
   };
@@ -85,7 +88,7 @@ const CartPage = () => {
     fetchCart();
   }, []);
 
-  // Xoá sản phẩm
+  // Xóa sản phẩm 1 dòng
   const handleRemove = (id: string) => {
     Alert.alert("Xác nhận", "Bạn chắc chắn xoá sản phẩm này?", [
       { text: "Huỷ", style: "cancel" },
@@ -95,7 +98,7 @@ const CartPage = () => {
         onPress: async () => {
           setUpdating(true);
           try {
-            await removeCartItemAPI(id);
+            await removeCartItemAPI([id]);
             fetchCart();
           } catch {
             Alert.alert("Lỗi", "Không thể xoá sản phẩm.");
@@ -106,9 +109,40 @@ const CartPage = () => {
     ]);
   };
 
-  // Cập nhật số lượng
+  // Xóa nhiều sản phẩm đã chọn
+  const handleRemoveSelected = () => {
+    if (!selectedKeys.length) return;
+    Alert.alert(
+      "Xác nhận",
+      `Bạn chắc chắn xóa ${selectedKeys.length} sản phẩm đã chọn?`,
+      [
+        { text: "Huỷ", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: async () => {
+            setUpdating(true);
+            try {
+              await removeCartItemAPI(selectedKeys);
+              setSelectedKeys([]);
+              fetchCart();
+              Alert.alert("Thành công", "Đã xóa sản phẩm khỏi giỏ hàng!");
+            } catch {
+              Alert.alert("Lỗi", "Không thể xóa sản phẩm!");
+            }
+            setUpdating(false);
+          },
+        },
+      ]
+    );
+  };
+
+  // Cập nhật số lượng (nếu <1 thì xoá)
   const updateQuantity = async (item: any, newQty: number) => {
-    if (newQty < 1) return;
+    if (newQty < 1) {
+      handleRemove(item.id);
+      return;
+    }
     setUpdating(true);
     try {
       await updateCartItemAPI({ cartItemId: item.id, quantity: newQty });
@@ -128,7 +162,7 @@ const CartPage = () => {
         0
       );
 
-  // Multi-select row giống web
+  // Multi-select row
   const toggleSelect = (id: string) => {
     setSelectedKeys((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -227,7 +261,7 @@ const CartPage = () => {
           />
           <Text style={styles.title}>Giỏ Hàng</Text>
         </View>
-        {/* Select multi (chọn, bỏ chọn) */}
+        {/* Select multi */}
         <View style={styles.selectBar}>
           <TouchableOpacity onPress={selectAll} style={styles.selectAction}>
             <Text style={{ color: "black", fontWeight: "bold" }}>
@@ -240,6 +274,16 @@ const CartPage = () => {
           <Text style={{ marginLeft: 10, color: "#333" }}>
             Đã chọn {selectedKeys.length}/{cartDetails.length}
           </Text>
+          {selectedKeys.length > 0 && (
+            <TouchableOpacity
+              onPress={handleRemoveSelected}
+              style={[styles.selectAction, { borderColor: "#d32f2f" }]}
+            >
+              <Text style={{ color: "#d32f2f", fontWeight: "bold" }}>
+                Xóa đã chọn ({selectedKeys.length})
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
         {loading ? (
           <ActivityIndicator size="large" style={{ marginTop: 50 }} />
@@ -283,15 +327,27 @@ const CartPage = () => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.checkoutBtn}
-              onPress={() =>
-                router.push({
-                  pathname: "/order/checkout",
-                  params: {
-                    ids: selectedKeys.join(","),
-                    cartId: cartId || undefined, // Chuyển ID giỏ hàng nếu có
-                  },
-                })
-              }
+              onPress={() => {
+                if (!selectedKeys.length) {
+                  Alert.alert(
+                    "Thông báo",
+                    "Chưa chọn sản phẩm nào để thanh toán!"
+                  );
+                  return;
+                }
+                // Lấy ra các item đã chọn đã có detail
+                const selectedItems = cartDetails.filter((item) =>
+                  selectedKeys.includes(item.id)
+                );
+                // SET checkoutData vào context
+                setCheckoutData({
+                  cart: selectedItems, // đã có detail như web
+                  cartId,
+                  userDetails: {}, // hoặc null, sẽ nhập ở bước sau
+                  cartSummary: {}, // sẽ tính ở bước sau
+                });
+                router.push("/order/checkout");
+              }}
               disabled={loading || updating || !selectedKeys.length}
             >
               <Text style={styles.buttonText}>
@@ -316,6 +372,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
     gap: 12,
+    flexWrap: "wrap",
   },
   selectAction: {
     paddingHorizontal: 10,
@@ -330,7 +387,6 @@ const styles = StyleSheet.create({
   emptyImage: { width: 180, height: 180, marginBottom: 18, marginTop: 36 },
   empty: { fontSize: 17, color: "#aaa", marginTop: 4 },
 
-  // --- ITEM STYLE ---
   itemContainer: {
     flexDirection: "row",
     paddingBottom: 18,
@@ -359,7 +415,6 @@ const styles = StyleSheet.create({
     borderColor: "#111",
     zIndex: 10,
   },
-
   image: {
     width: 68,
     height: 68,
@@ -369,8 +424,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ededed",
   },
-  // Dấu tick sang phải ảnh
-
   name: { fontSize: 16, fontWeight: "600", color: "#111", marginBottom: 1 },
   price: { color: "#111", fontWeight: "bold", marginBottom: 1, fontSize: 15.5 },
   attrRow: { flexDirection: "row", gap: 14, marginTop: 4 },
@@ -396,7 +449,6 @@ const styles = StyleSheet.create({
     color: "#222",
   },
   removeBtn: { marginLeft: 18, padding: 2 },
-  // ----
 
   footer: {
     position: "absolute",
@@ -435,14 +487,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
-    textAlign: "center",
-    fontWeight: "bold",
-    fontSize: 16,
-    letterSpacing: 0.2,
-  },
-  // checkoutBtn text đen
-  checkoutBtnText: {
-    color: "#111",
     textAlign: "center",
     fontWeight: "bold",
     fontSize: 16,

@@ -68,7 +68,7 @@ const ProfilePage = () => {
 
   // Chuẩn hoá giá trị cho form
   const initialValues = {
-    firstName: user?.firstName || "",
+    firstName: user?.firstName || "", // an toàn
     lastName: user?.lastName || "",
     phoneNumber: user?.phoneNumber || "",
     gender:

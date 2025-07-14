@@ -1,5 +1,10 @@
+import {
+  calculateCartTotalAPI,
+  getUserAddressesAPI,
+  getUserInfoAPI,
+} from "@/app/utils/apiall";
 import { useCurrentApp } from "@/context/app.context";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -15,41 +20,24 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getCartSummaryAPI } from "../utils/apiall";
-
-// Quốc gia (tuỳ chỉnh theo backend của bạn)
-const COUNTRIES = [
-  { value: "", label: "Chọn quốc gia/khu vực" },
-  { value: "Vietnam", label: "Việt Nam" },
-  { value: "Laos", label: "Lào" },
-  { value: "Cambodia", label: "Campuchia" },
-  { value: "Thailand", label: "Thái Lan" },
-];
 
 const GENDERS = [
-  { value: "", label: "Giới tính" },
-  { value: "male", label: "Nam" },
-  { value: "female", label: "Nữ" },
+  { value: "Male", label: "Nam" },
+  { value: "Female", label: "Nữ" },
   { value: "other", label: "Khác" },
 ];
+
 const CheckoutPage = () => {
-  const { cartId } = useLocalSearchParams<{ cartId?: string }>();
-  const {
-    cart,
-    setCart,
-    buyNowItem,
-    setBuyNowItem,
-    appState,
-    setCheckoutData,
-  } = useCurrentApp();
+  // Lấy dữ liệu từ context (checkoutData đã có cart chi tiết)
+  const { checkoutData, setCheckoutData } = useCurrentApp();
+  const { cart = [], cartId } = checkoutData;
 
-  // Nếu mua ngay thì chỉ lấy đúng item đó, ngược lại lấy cả cart
-  const items = buyNowItem ? [buyNowItem] : cart;
+  // Lấy ra id cho gọi API tổng tiền (nếu cần)
+  const cartItemIds = cart.map((item) => item.id);
 
-  // State cho thông tin user
+  // State cho thông tin user giống web
   const [userDetails, setUserDetails] = useState({
     fullname: "",
-    country: "",
     specific_Address: "",
     city: "",
     district: "",
@@ -60,66 +48,78 @@ const CheckoutPage = () => {
     additionalInfo: "",
   });
 
-  // Tự động điền thông tin từ appState nếu có (nếu user đã login)
+  // Lấy info từ user đã đăng nhập và địa chỉ mặc định nếu có
   useEffect(() => {
-    if (!appState?.user) return;
-    const user = appState.user;
-    setUserDetails((prev) => ({
-      ...prev,
-      fullname:
-        (user?.firstName ? user.firstName + " " : "") + (user?.lastName || ""),
-      country: "",
-      specific_Address: user?.address || "",
-      city: user?.city || "",
-      district: user?.district || "",
-      ward: user?.ward || "",
-      phone_number: user?.phoneNumber || "",
-      email: user?.email || "",
-      gender:
-        Number(user?.gender) === 0
-          ? "male"
-          : Number(user?.gender) === 1
-          ? "female"
-          : Number(user?.gender) === 2
-          ? "other"
-          : "",
-    }));
-  }, [appState?.user]);
+    const fetchUserProfileAndAddress = async () => {
+      try {
+        const res = await getUserInfoAPI?.();
+        const user = res || {};
+        setUserDetails((prev) => ({
+          ...prev,
+          fullname:
+            (user?.firstName ? user.firstName + " " : "") +
+            (user?.lastName || ""),
+          email: user?.email || "",
+          gender: user?.gender || "",
+          phone_number: user?.phoneNumber || "",
+        }));
+      } catch {}
 
-  // Giả lập API tính tổng
-  const [cartSummary, setCartSummary] = useState({
-    subtotal: 0,
-    estimatedShipping: 0,
-    estimatedTax: 0,
-    estimatedTotal: 0,
-  });
+      try {
+        const res = await getUserAddressesAPI();
+        let addresses = [];
+        if (Array.isArray(res.data?.data)) {
+          addresses = res.data.data;
+        } else if (Array.isArray(res.data)) {
+          addresses = res.data;
+        }
+        const defaultAddress = addresses.find((addr) => addr.isDefault);
+        if (defaultAddress) {
+          setUserDetails((prev) => ({
+            ...prev,
+            fullname: defaultAddress.receiverName || prev.fullname,
+            phone_number: defaultAddress.phone || prev.phone_number,
+            specific_Address:
+              defaultAddress.detailAddress || prev.specific_Address,
+            city: defaultAddress.province || prev.city,
+            district: defaultAddress.district || prev.district,
+            ward: defaultAddress.ward || prev.ward,
+          }));
+        }
+      } catch {}
+    };
+    fetchUserProfileAndAddress();
+  }, []);
+
+  // Tính tổng tiền
+  const [cartSummary, setCartSummary] = useState({ totalAmount: 0 });
   const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     const fetchSummary = async () => {
       setLoading(true);
       try {
-        const res = await getCartSummaryAPI();
-        setCartSummary(res);
-        console.log("Cart summary:", res);
+        if (!cartItemIds.length) return;
+        const res = await calculateCartTotalAPI(cartItemIds);
+        setCartSummary(res?.data || res || { totalAmount: 0 });
       } catch (err) {
-        setCartSummary({
-          subtotal: 0,
-          estimatedShipping: 0,
-          estimatedTax: 0,
-          estimatedTotal: 0,
-        });
+        setCartSummary({ totalAmount: 0 });
       }
       setLoading(false);
     };
     fetchSummary();
+    // eslint-disable-next-line
+  }, [cartItemIds.length]);
+  useEffect(() => {
+    console.log("CartSummary:", cart, checkoutData);
   }, []);
 
   // Xử lý input
-  const handleInputChange = (name: string, value: string) => {
+  const handleInputChange = (name, value) => {
     setUserDetails((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Xử lý thanh toán
+  // Sang trang thanh toán (payment)
   const handleCheckout = () => {
     if (
       !userDetails.fullname ||
@@ -130,34 +130,32 @@ const CheckoutPage = () => {
       return;
     }
     setCheckoutData({
+      ...checkoutData,
       userDetails,
       cartSummary,
       cartId,
-      cart,
+      cart, // Giữ nguyên cart đã có detail!
     });
     router.push("/order/payment");
   };
 
-  // Hiển thị 1 item cart
-  const renderItem = ({ item }: any) => (
+  // Hiển thị 1 item cart (giờ đã có detail, image, name,...)
+  const renderItem = ({ item }) => (
     <View style={styles.item}>
       <Image
-        source={{ uri: item.product?.image || item.image }}
+        source={{ uri: item.detail?.imageUrl || item.image }}
         style={styles.productImage}
       />
       <View style={styles.itemDetails}>
         <Text style={styles.productName}>
-          {item.product?.name || item.name}
+          {item.detail?.productName || item.name}
         </Text>
         <Text style={styles.productInfo}>
           Số lượng: <Text style={styles.bold}>{item.quantity}</Text>
         </Text>
       </View>
       <Text style={styles.itemPrice}>
-        {(
-          (item.product?.price || item.unitPrice) * item.quantity
-        ).toLocaleString()}{" "}
-        VND
+        {(item.unitPrice * item.quantity).toLocaleString()} VND
       </Text>
     </View>
   );
@@ -172,45 +170,19 @@ const CheckoutPage = () => {
           style={styles.container}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.header}>Billing Details</Text>
+          <Text style={styles.header}>Thông tin giao hàng</Text>
           {/* --- Form --- */}
           <View style={styles.form}>
             <TextInput
               style={styles.input}
               value={userDetails.fullname}
               onChangeText={(val) => handleInputChange("fullname", val)}
-              placeholder="Full Name"
+              placeholder="Họ và tên"
               placeholderTextColor="#888"
             />
-            {/* Quốc gia */}
+
             <View style={styles.selectInput}>
-              <Text style={styles.label}>Country/Region:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {COUNTRIES.map((ct) => (
-                  <TouchableOpacity
-                    key={ct.value}
-                    style={[
-                      styles.selectOption,
-                      userDetails.country === ct.value && styles.selectedOption,
-                    ]}
-                    onPress={() => handleInputChange("country", ct.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.selectOptionText,
-                        userDetails.country === ct.value &&
-                          styles.selectedOptionText,
-                      ]}
-                    >
-                      {ct.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-            {/* Gender */}
-            <View style={styles.selectInput}>
-              <Text style={styles.label}>Gender:</Text>
+              <Text style={styles.label}>Giới tính:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {GENDERS.map((gen) => (
                   <TouchableOpacity
@@ -234,39 +206,40 @@ const CheckoutPage = () => {
                 ))}
               </ScrollView>
             </View>
+
             <TextInput
               style={styles.input}
               value={userDetails.specific_Address}
               onChangeText={(val) => handleInputChange("specific_Address", val)}
-              placeholder="Street Address"
+              placeholder="Địa chỉ chi tiết (số nhà, tên đường)"
               placeholderTextColor="#888"
             />
             <TextInput
               style={styles.input}
               value={userDetails.city}
               onChangeText={(val) => handleInputChange("city", val)}
-              placeholder="City"
+              placeholder="Tỉnh / Thành phố"
               placeholderTextColor="#888"
             />
             <TextInput
               style={styles.input}
               value={userDetails.district}
               onChangeText={(val) => handleInputChange("district", val)}
-              placeholder="District (Quận/Huyện)"
+              placeholder="Quận / Huyện"
               placeholderTextColor="#888"
             />
             <TextInput
               style={styles.input}
               value={userDetails.ward}
               onChangeText={(val) => handleInputChange("ward", val)}
-              placeholder="Ward (Phường/Xã)"
+              placeholder="Phường / Xã"
               placeholderTextColor="#888"
             />
             <TextInput
               style={styles.input}
               value={userDetails.phone_number}
               onChangeText={(val) => handleInputChange("phone_number", val)}
-              placeholder="Phone"
+              placeholder="Số điện thoại"
               keyboardType="phone-pad"
               placeholderTextColor="#888"
             />
@@ -274,7 +247,7 @@ const CheckoutPage = () => {
               style={styles.input}
               value={userDetails.email}
               onChangeText={(val) => handleInputChange("email", val)}
-              placeholder="Email Address"
+              placeholder="Địa chỉ email"
               keyboardType="email-address"
               placeholderTextColor="#888"
             />
@@ -282,7 +255,7 @@ const CheckoutPage = () => {
               style={[styles.input, { height: 76 }]}
               value={userDetails.additionalInfo}
               onChangeText={(val) => handleInputChange("additionalInfo", val)}
-              placeholder="Additional Information"
+              placeholder="Ghi chú thêm (tuỳ chọn)"
               placeholderTextColor="#888"
               multiline
             />
@@ -290,24 +263,19 @@ const CheckoutPage = () => {
 
           {/* --- Order Summary --- */}
           <View style={styles.orderSummary}>
-            <Text style={styles.summaryTitle}>Order Summary</Text>
+            <Text style={styles.summaryTitle}>Đơn hàng của bạn</Text>
             <FlatList
-              data={items}
-              keyExtractor={(item, idx) => item.product?.id + "-" + idx}
+              data={cart}
+              keyExtractor={(item, idx) => item.id + "-" + idx}
               renderItem={renderItem}
               scrollEnabled={false}
               style={{ marginBottom: 10 }}
             />
 
-           
             <View style={styles.summaryRow}>
-              <Text>Tax:</Text>
-              <Text>{cartSummary.estimatedTax?.toLocaleString() || 0} VND</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={{ fontWeight: "bold" }}>Total:</Text>
+              <Text style={{ fontWeight: "bold" }}>Tổng cộng:</Text>
               <Text style={{ fontWeight: "bold", color: "#e53935" }}>
-                {cartSummary.estimatedTotal?.toLocaleString() || 0} VND
+                {(cartSummary.totalAmount ?? 0).toLocaleString()} VND
               </Text>
             </View>
           </View>
@@ -321,6 +289,8 @@ const CheckoutPage = () => {
     </SafeAreaView>
   );
 };
+
+// ...styles giữ nguyên...
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#fff", paddingTop: 20 },
@@ -417,8 +387,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginVertical: 1,
   },
-  summaryLabel: { fontSize: 15, color: "#555" },
-  summaryValue: { fontSize: 15, color: "#111" },
   button: {
     backgroundColor: "#111",
     paddingVertical: 17,

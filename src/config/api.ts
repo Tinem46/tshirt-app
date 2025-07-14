@@ -8,7 +8,7 @@ const backend = Platform.OS === "android" ? URL_ANROID_BACKEND : URL_IOS_BACKEND
 
 export const api = axios.create({
   baseURL: `${backend}/api/`,
-  timeout: 5 * 1000,
+  timeout: 20 * 1000,
 });
 
 api.interceptors.request.use(async function (config) {
@@ -21,9 +21,11 @@ api.interceptors.request.use(async function (config) {
   return Promise.reject(error);
 });
 
-api.interceptors.response.use(function (response) {
-  return response.data;
-}, function (error) {
-  if (error?.response?.data) return error?.response?.data;
-  return Promise.reject(error);
-});
+api.interceptors.response.use(
+  response => response.data,
+  error => {
+    console.log("AXIOS ERROR:", error?.message, error?.response);
+    return Promise.reject(error);
+  }
+);
+

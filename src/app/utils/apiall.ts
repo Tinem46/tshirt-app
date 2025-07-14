@@ -58,7 +58,9 @@ export const updatePasswordAPI = (oldPassword: string, newPassword: string, conf
 
 export const getProductDetailAPI = (id: string) => api.get<IBackendRes<any>>(`Product/${id}`);
 export const getProductVariantsAPI = (id: string) => api.get<IBackendRes<any>>(`ProductVariant/product/${id}`);
-export const addToCartAPI = (data: { productId: string, productVariantId: string | null, quantity: number }) => api.post<IBackendRes<any>>("Cart", data);
+export const addToCartAPI = (
+  data: { productVariantId: string | null; quantity: number }[]
+) => api.post<IBackendRes<any>>("Cart", data);
 export const updateCartItemAPI =  ({
   cartItemId,
   quantity,
@@ -70,15 +72,25 @@ export const updateCartItemAPI =  ({
 };
 
 // Xóa 1 item khỏi giỏ
-export const removeCartItemAPI =  (cartItemId: string) => {
-  return api.delete<IBackendRes<any>>(`Cart/${cartItemId}`);
+export const removeCartItemAPI =  (cartItemId: string[]) => {
+  return api.delete<IBackendRes<any>>("Cart", {
+        data: cartItemId, // mảng các id đã chọn
+        headers: { "Content-Type": "application/json" },
+      });;
 };
 export const getCartAPI =  () => {
-  return api.get<IBackendRes<any>>("Cart/my-cart"); // URL tùy theo backend bạn
+  return api.get<IBackendRes<any>>("Cart"); // URL tùy theo backend bạn
 };
 export const getProductVariantAPI = (variantId: string) =>
   api.get<IBackendRes<any>>(`ProductVariant/${variantId}`);
-export const getCartSummaryAPI = () => api.get<IBackendRes<any>>("Cart/summary");
+export const calculateCartTotalAPI = (cartItemIds: string[]) => {
+  return api.post<IBackendRes<any>>("Cart/calculate-total", cartItemIds, {
+    headers: { "Content-Type": "application/json" },
+  });
+};
+export const getUserAddressesAPI = () => {
+  return api.get<IBackendRes<any>>("UserAddress");
+};
 // Lấy danh sách phương thức giao hàng
 export const getShippingMethodsAPI = () => {
   // Đường dẫn API giống web
@@ -87,7 +99,6 @@ export const getShippingMethodsAPI = () => {
 export const placeOrderAPI = (payload: any) => {
   return api.post("Orders", payload);
 };
-
 export const getOrderDetailAPI = (orderId: string) => {
   return api.get(`Orders/${orderId}`);
 };
