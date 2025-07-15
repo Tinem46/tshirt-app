@@ -22,15 +22,21 @@ const PaymentPage = () => {
     cart = [],
     userDetails = {},
     cartSummary = {},
-    cartId,
   } = checkoutData || {};
 
-  const [shippingMethods, setShippingMethods] = useState([]);
+  type ShippingMethod = {
+    id: number | string;
+    name: string;
+    description?: string;
+    fee: number;
+  };
+
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [shippingMethodId, setShippingMethodId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const enrichCartItems = (cart) => {
-    return cart.map((item) => {
+  const enrichCartItems = (cart: any) => {
+    return cart.map((item: any) => {
       const detail = item.detail || {};
       return {
         ...item,
@@ -67,7 +73,7 @@ const PaymentPage = () => {
 
   // Tính lại phí và tổng tiền
   const shippingFee =
-    shippingMethods.find((x) => x.id === shippingMethodId)?.fee ??
+    shippingMethods.find((x: any) => x.id === shippingMethodId)?.fee ??
     cartSummary?.estimatedShipping ??
     0;
   const estimatedTotal =
@@ -94,7 +100,7 @@ const PaymentPage = () => {
           detailAddress: userDetails.specific_Address,
           ward: userDetails.ward,
           district: userDetails.district,
-          province: userDetails.country,
+          province: userDetails.country || "String",
           postalCode: "",
           isDefault: false,
         },
@@ -102,44 +108,41 @@ const PaymentPage = () => {
         couponId: selectedCoupon?.id || null,
         shippingMethodId,
 
-        orderItems: enrichedCart.map((item) => ({
+        orderItems: enrichedCart.map((item: any) => ({
           cartItemId: item.id,
           productId: item.productId,
           customDesignId: item.customDesignId ?? null,
           productVariantId: item.productVariantId,
-          itemName: item.name,
           selectedColor: item.selectedColor,
           selectedSize: item.selectedSize,
-          image: item.image,
+          // image: item.image,
           quantity: item.quantity,
-          unitPrice: item.unitPrice,
+          // unitPrice: item.unitPrice,
         })),
-        paymentMethod: 1, // Chỉ hỗ trợ COD
-        paymentDescription: "Thanh toán khi nhận hàng",
+        paymentMethod: 1,
+        paymentDescription: "Thanh toán khi nhận hàng (COD)",
       };
 
       console.log("OrderItems gửi đi:", payload.orderItems);
       console.log("Payload đặt hàng:", JSON.stringify(payload, null, 2));
 
       const res = await placeOrderAPI(payload);
-      const orderId =
-        res?.data?.order?.id ||
-        res?.data?.id ||
-        res?.data?.data?.id ||
-        res?.id ||
-        null;
+      const orderId = res?.order?.id || res?.orderId || null;
+      console.log("Đặt hàng thành công:", orderId);
 
-      console.log("Order API response:", JSON.stringify(res, null, 2));
-      if (!orderId) {
-        Alert.alert("Không thể đặt hàng, vui lòng thử lại sau!");
-        return;
-      }
-
-      Alert.alert("Đặt hàng thành công!");
-      router.replace({
-        pathname: "/order/orderSuccessPage",
-        params: { orderId },
-      });
+      // Nếu muốn show log toàn bộ response:
+      console.log("API Response:", JSON.stringify(res, null, 2));
+      Alert.alert("Đặt hàng thành công!", "", [
+        {
+          text: "OK",
+          onPress: () => {
+            router.replace({
+              pathname: "/order/orderSuccessPage",
+              params: { orderId },
+            });
+          },
+        },
+      ]);
     } catch (error: any) {
       Alert.alert("Đặt hàng thất bại!", "Vui lòng thử lại.");
       // Log toàn bộ error để debug chính xác lỗi gì:
@@ -167,7 +170,7 @@ const PaymentPage = () => {
           {loading ? (
             <ActivityIndicator />
           ) : (
-            shippingMethods.map((m) => (
+            shippingMethods.map((m: any) => (
               <TouchableOpacity
                 key={m.id}
                 style={[
@@ -213,7 +216,7 @@ const PaymentPage = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mã giảm giá</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {(userCoupons || []).map((c) => (
+            {(userCoupons || []).map((c: any) => (
               <TouchableOpacity
                 key={c.id}
                 style={[

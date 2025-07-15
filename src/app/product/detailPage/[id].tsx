@@ -1,8 +1,14 @@
+import { IProduct, IProductVariant } from "@/app/types/model";
 import {
   addToCartAPI,
   getProductDetailAPI,
   getProductVariantsAPI,
 } from "@/app/utils/apiall";
+import {
+  COLOR_HEX,
+  COLOR_LABELS,
+  SIZE_LABELS,
+} from "@/components/Enums/enumMaps";
 import SkeletonDetailProduct from "@/components/skeleton/detailSkeleton";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -24,35 +30,38 @@ import { APP_COLOR } from "../../utils/constant";
 const { width } = Dimensions.get("window");
 const fallbackImg = "https://dosi-in.com/images/detailed/42/CDL10_1.jpg";
 
-const COLOR_ENUM_MAP = { 0: "Black", 1: "Red", 2: "Blue", 3: "Green" };
-const SIZE_ENUM_MAP = { 1: "S", 2: "M", 3: "L", 4: "XL", 5: "XXL" };
-
-// Chuẩn hóa tên màu/size cho UI
-function getColorName(color) {
+// Mapping helpers
+function getColorName(color: any) {
   if (typeof color === "string") return color;
-  if (COLOR_ENUM_MAP[color] !== undefined) return COLOR_ENUM_MAP[color];
+  if (COLOR_LABELS[color] !== undefined) return COLOR_LABELS[color];
   return color?.toString() || "";
 }
-function getSizeName(size) {
+function getSizeName(size: any) {
   if (typeof size === "string") return size;
-  if (SIZE_ENUM_MAP[size] !== undefined) return SIZE_ENUM_MAP[size];
+  if (SIZE_LABELS[size] !== undefined) return SIZE_LABELS[size];
   return size?.toString() || "";
+}
+function getColorHex(color: any) {
+  if (COLOR_HEX[color] !== undefined) return COLOR_HEX[color];
+  return "#eee";
 }
 
 // Helper build item info từ variant và product
-function buildOrderItem(product, variant, selectedIndex) {
+function buildOrderItem(
+  product: IProduct,
+  variant: IProductVariant,
+  selectedIndex: any
+) {
   if (!variant) return null;
   return {
     productId: variant.productId || product.id || "",
     productVariantId: variant.id,
     itemName: variant.productName || product.name || "",
-    image:
-      variant.imageUrl ||
-      product.images?.[selectedIndex] ||
-      fallbackImg,
+    image: variant.imageUrl || product.images?.[selectedIndex] || fallbackImg,
     selectedColor: variant.color,
     selectedSize: variant.size,
-    unitPrice: typeof variant.price === "number" ? variant.price : product.price || 0,
+    unitPrice:
+      typeof variant.price === "number" ? variant.price : product.price || 0,
     quantity: 1,
   };
 }
@@ -104,10 +113,18 @@ const DetailPage = () => {
   const uniqueSizes = [...new Set(variants.map((v) => v.size))];
   const uniqueColors = [...new Set(variants.map((v) => v.color))];
   const filteredColors = selectedSize
-    ? [...new Set(variants.filter((v) => v.size === selectedSize).map((v) => v.color))]
+    ? [
+        ...new Set(
+          variants.filter((v) => v.size === selectedSize).map((v) => v.color)
+        ),
+      ]
     : uniqueColors;
   const filteredSizes = selectedColor
-    ? [...new Set(variants.filter((v) => v.color === selectedColor).map((v) => v.size))]
+    ? [
+        ...new Set(
+          variants.filter((v) => v.color === selectedColor).map((v) => v.size)
+        ),
+      ]
     : uniqueSizes;
 
   // Thumbnail scroll
@@ -247,7 +264,10 @@ const DetailPage = () => {
               style={styles.thumbnailContainer}
             >
               {product.images.map((img: string, idx: number) => (
-                <TouchableOpacity key={idx} onPress={() => setSelectedIndex(idx)}>
+                <TouchableOpacity
+                  key={`${img}_${idx}`}
+                  onPress={() => setSelectedIndex(idx)}
+                >
                   <Image
                     source={{ uri: img }}
                     style={[
@@ -280,9 +300,9 @@ const DetailPage = () => {
             <>
               <Text style={styles.sectionTitle}>Chọn size:</Text>
               <View style={styles.sizeContainer}>
-                {filteredSizes.map((size) => (
+                {filteredSizes.map((size, idx) => (
                   <TouchableOpacity
-                    key={size}
+                    key={`size_${size}_${idx}`}
                     style={[
                       styles.sizeButton,
                       selectedSize === size && styles.sizeButtonSelected,
@@ -310,9 +330,10 @@ const DetailPage = () => {
               <View style={[styles.colorContainer, { marginBottom: 10 }]}>
                 {filteredColors.map((color, idx) => (
                   <TouchableOpacity
-                    key={color + idx}
+                    key={`color_${color}_${idx}`}
                     style={[
                       styles.colorCircle,
+                      { backgroundColor: getColorHex(color) },
                       selectedColor === color && styles.colorCircleActive,
                     ]}
                     onPress={() => {
@@ -332,6 +353,13 @@ const DetailPage = () => {
                       style={[
                         styles.colorText,
                         selectedColor === color && styles.colorTextActive,
+                        {
+                          color:
+                            selectedColor === color ||
+                            getColorHex(color) === "#222"
+                              ? "#fff"
+                              : "#222",
+                        },
                       ]}
                     >
                       {getColorName(color)}
@@ -468,11 +496,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   colorCircleActive: {
-    backgroundColor: APP_COLOR.ORANGE,
     borderColor: APP_COLOR.ORANGE,
   },
   colorText: { fontSize: 14, color: "#333" },
-  colorTextActive: { color: "#fff", fontWeight: "bold" },
+  colorTextActive: { fontWeight: "bold" },
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",

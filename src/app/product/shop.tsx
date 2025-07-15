@@ -5,8 +5,8 @@ import React, { useEffect, useState } from "react";
 import { FlatList, Image, StyleSheet, Text, View } from "react-native";
 import Card from "../../components/card/card";
 import FilterBar from "../../components/filterBar/filterBar";
-import { IProduct } from "../types/model";
-import { fetchProductsAPI } from "../utils/apiall";
+import { IProduct, IProductVariant } from "../types/model";
+import { fetchProductsAPI, getProductVariantsAPI } from "../utils/apiall";
 
 const itemsPerPage = 8;
 const defaultFilters = {
@@ -18,7 +18,7 @@ const defaultFilters = {
 };
 
 const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
-  const { product, setProduct } = useCurrentApp();
+  // const { product, setProduct } = useCurrentApp();
   const [products, setProducts] = useState<IProduct[]>([]);
   const [filters, setFilters] = useState(defaultFilters);
   const [page, setPage] = useState(1);
@@ -26,6 +26,7 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [productsWithVariant, setProductsWithVariant] = useState<any[]>([]);
 
   // Xây dựng params gửi lên API dựa trên filter và search (giống web)
   const buildParams = () => {
@@ -80,17 +81,30 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
       const data = response?.data?.data || [];
       const totalCount = response?.data?.totalCount || 0;
 
+      const withVariant = await Promise.all(
+        data.map(async (p: IProductVariant) => {
+          try {
+            const res = await getProductVariantsAPI(p.id);
+            const variants = res.data || [];
+            return { ...p, variants }; // truyền mảng
+          } catch (e) {
+            return { ...p, variants: [] };
+          }
+        })
+      );
+
       if (reset) {
-        setProducts(data);
+        setProducts(withVariant);
+        setProductsWithVariant(withVariant);
         setPage(2);
       } else {
-        setProducts((prev) => [...prev, ...data]);
+        setProductsWithVariant((prev) => [...prev, ...withVariant]);
         setPage((prev) => prev + 1);
       }
       setTotal(totalCount);
       setHasMore(data.length === itemsPerPage);
     } catch (error) {
-      setProducts([]);
+      setProductsWithVariant([]);
       setTotal(0);
     } finally {
       setLoading(false);
@@ -138,9 +152,13 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
         </View>
       ) : (
         <FlatList
-          data={products}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <Card shirt={item} />}
+          data={productsWithVariant}
+          keyExtractor={(item, idx) =>
+            item.id ? `${item.id}_${idx}` : `${idx}`
+          }
+          renderItem={({ item }) => (
+            <Card shirt={item} variants={item.variants} />
+          )}
           contentContainerStyle={styles.list}
           numColumns={2}
           onEndReached={loadMore}

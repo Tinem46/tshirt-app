@@ -1,4 +1,3 @@
-import { useCurrentApp } from "@/context/app.context";
 import { router } from "expo-router";
 import React from "react";
 import {
@@ -9,25 +8,28 @@ import {
   Text,
   View,
 } from "react-native";
-import { IProduct } from "../../app/types/model";
+import { IProduct, IProductVariant } from "../../app/types/model";
+import { COLOR_HEX, SIZE_LABELS } from "../Enums/enumMaps";
 
 interface CardProps {
   shirt: IProduct;
+  variants?: IProductVariant[];
 }
 
-const Card = ({ shirt }: CardProps) => {
-  const { appState } = useCurrentApp();
-  const userId = appState?.user?.id;
+const Card = ({ shirt, variants = [] }: CardProps) => {
+  const imageUrl =
+    (variants[0]?.imageUrl && variants[0].imageUrl.startsWith("http")
+      ? variants[0].imageUrl
+      : variants[0]?.imageUrl
+      ? "http://localhost:5265" + variants[0]?.imageUrl
+      : "") ||
+    shirt.images?.[0] ||
+    "https://cdn-icons-png.flaticon.com/512/2748/2748558.png";
 
-  // Mỗi khi context likedProductIds hoặc id sản phẩm đổi, cập nhật lại trạng thái "tim"
+  // Lấy unique màu & size từ variants
+  const uniqueColors = Array.from(new Set(variants.map((v) => v.color)));
+  const uniqueSizes = Array.from(new Set(variants.map((v) => v.size)));
 
-  const colorHexMap = {
-    Trắng: "#fafafa",
-    Đen: "#222",
-    Xanh: "#7ec1e9",
-    Đỏ: "#e55a5a",
-    Vàng: "#ffe066",
-  };
   return (
     <Pressable
       onPress={() => {
@@ -35,40 +37,61 @@ const Card = ({ shirt }: CardProps) => {
           pathname: "/product/detailPage/[id]",
           params: { id: shirt.id },
         });
-        console.log("Navigating to product detail:", shirt.id);
       }}
     >
       <View style={styles.card}>
-        <Image
-          source={{ uri: "https://dosi-in.com/images/detailed/42/CDL10_1.jpg" }}
-          style={styles.img}
-        />
-        <View style={styles.colorRow}>
-          <View
-            style={[
-              styles.colorDot,
-              { backgroundColor: colorHexMap[shirt.color] || "#eee" },
-            ]}
-          />
-        </View>
-        <Text style={styles.sizeText}>
-           {shirt.size ? shirt.size : "XS-XXL"}
-        </Text>
-        <Text style={styles.title} numberOfLines={2}>
-          {shirt.name}
-        </Text>
+        <Image source={{ uri: imageUrl }} style={styles.img} />
+
         <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 2,
-          }}
+          style={{ flex: 1, width: "100%", justifyContent: "space-between" }}
         >
-          <Text style={styles.labelNew}>New</Text>
+          {/* Hàng màu */}
+          <View style={styles.colorRow}>
+            {uniqueColors.map((color, idx) => (
+              <View
+                key={`color_${color}_${idx}`}
+                style={[
+                  styles.colorDot,
+                  { backgroundColor: COLOR_HEX[color] || "#eee" },
+                ]}
+              />
+            ))}
+          </View>
+
+          {/* Hàng size */}
+          <View style={styles.sizeRow}>
+            {uniqueSizes.map((size, idx) => (
+              <Text key={`size_${size}_${idx}`} style={styles.sizeBadge}>
+                {SIZE_LABELS[size] || size}
+              </Text>
+            ))}
+          </View>
+
+          <Text style={styles.title} numberOfLines={2}>
+            {shirt.name}
+          </Text>
         </View>
-        <Text style={styles.price}>
-          {Number(shirt.price).toLocaleString()} VND
-        </Text>
+
+        <View>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 0,
+            }}
+          >
+            <Text style={styles.labelNew}>New</Text>
+          </View>
+          <Text style={styles.price}>
+            {Number(
+              variants[0]?.salePrice ??
+                variants[0]?.price ??
+                shirt.salePrice ??
+                shirt.price
+            ).toLocaleString()}{" "}
+            VND
+          </Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -76,13 +99,14 @@ const Card = ({ shirt }: CardProps) => {
 
 const styles = StyleSheet.create({
   card: {
-    width: Dimensions.get("window").width / 2 - 10,
+    width: Dimensions.get("window").width / 2 - 14,
+    height: 400,
     backgroundColor: "#fff",
     marginHorizontal: 5,
     marginVertical: 12,
     borderRadius: 15,
     paddingHorizontal: 10,
-    paddingVertical: 13,
+    paddingVertical: 15,
     alignItems: "flex-start",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -96,33 +120,53 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#f3f4f6",
     marginBottom: 10,
+    resizeMode: "cover",
   },
   colorRow: {
     flexDirection: "row",
     alignItems: "center",
+    flexWrap: "wrap",
+    marginBottom: 6,
+    justifyContent: "flex-start", // fix badge sát trái
     width: "100%",
-    marginBottom: 3,
-    marginTop: 1,
   },
   colorDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     marginRight: 8,
+    marginBottom: 6,
     borderWidth: 1,
     borderColor: "#ccc",
   },
+  sizeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginBottom: 7,
+    justifyContent: "flex-start", // fix badge sát trái
+    width: "100%",
+   
+  },
+  sizeBadge: {
+    backgroundColor: "#f2f2f2",
+    color: "#444",
+    fontSize: 12,
+    fontWeight: "500",
+    borderRadius: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginRight: 6,
+    marginBottom: 3,
+    overflow: "hidden",
+    minWidth: 28,
+    textAlign: "center",
+  },
+  // Other card styles
   favoriteIcon: {
     fontSize: 22,
     color: "#bbb",
     marginLeft: 12,
-  },
-  sizeText: {
-    fontSize: 12.5,
-    color: "#888",
-    marginBottom: 2,
-    width: "100%",
-    fontWeight: "500",
   },
   title: {
     fontWeight: "600",
@@ -138,8 +182,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     borderRadius: 7,
     paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingVertical: 0,
     marginRight: 4,
+    paddingTop: 2,
+    paddingBottom: 2,
   },
   price: {
     color: "#111",

@@ -33,54 +33,51 @@ interface IRegister {
 }
 
 export interface IProduct {
-    id: string,
-    name: string,
-   price: number,
-    description: string,
-    sizes: string[],
-    colors: string[],
-    image: string,
-    likedBy: string[],
-    inStock: boolean,
-    category: string,
-    quantity: number,
-    size:string
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  salePrice?: number;
+  sku?: string;
+  images: string[];
+  quantity: number;
+  categoryId: string;
+  categoryName?: string;
+  material?: number;
+  season?: number;
+  // ... các trường khác nếu có
+}
 
-    liked: boolean,
+export interface IProductVariant {
+  id: string;
+  productId: string;
+  color: number;      // enum ProductColor
+  size: number;       // enum ProductSize
+  price?: number;
+  salePrice?: number;
+  variantSku?: string;
+  quantity: number;
+  imageUrl?: string;
+  productName?: string; // Tên sản phẩm nếu cần
+
 }
 
 export interface ICartItem {
+    id: string;
   product: IProduct;
   quantity: number;
   size: string; // Added size property
   unitPrice: number; // Added unit price property
+  image: string; // Added image property
+  name ?: string; // Added name property
+  detail ?: {
+    imageUrl: string;
+    productName: string;
+}
 }
 
 
-export interface IMenu {
-    _id: string;
-    restaurant: string;
-    title: string;
-    createdAt: Date;
-    updatedAt: Date;
-    menuItem: IMenuItem[]
-}
 
-export interface IMenuItem {
-    _id: string;
-    menu: string;
-    title: string;
-    description: string;
-    basePrice: number,
-    image: string;
-    options: {
-        title: string;
-        description: string;
-        additionalPrice: number;
-    }[],
-    createdAt: Date;
-    updatedAt: Date;
-}
 
 export interface ICart {
     [key: string]: {

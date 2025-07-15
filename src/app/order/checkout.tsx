@@ -20,6 +20,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ICartItem } from "../types/model";
 
 const GENDERS = [
   { value: "Male", label: "Nam" },
@@ -73,7 +74,7 @@ const CheckoutPage = () => {
         } else if (Array.isArray(res.data)) {
           addresses = res.data;
         }
-        const defaultAddress = addresses.find((addr) => addr.isDefault);
+        const defaultAddress = addresses.find((addr: any) => addr.isDefault);
         if (defaultAddress) {
           setUserDetails((prev) => ({
             ...prev,
@@ -115,7 +116,7 @@ const CheckoutPage = () => {
   }, []);
 
   // Xử lý input
-  const handleInputChange = (name, value) => {
+  const handleInputChange = (name: any, value: any) => {
     setUserDetails((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -140,7 +141,7 @@ const CheckoutPage = () => {
   };
 
   // Hiển thị 1 item cart (giờ đã có detail, image, name,...)
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item }: { item: ICartItem }) => (
     <View style={styles.item}>
       <Image
         source={{ uri: item.detail?.imageUrl || item.image }}
@@ -266,7 +267,7 @@ const CheckoutPage = () => {
             <Text style={styles.summaryTitle}>Đơn hàng của bạn</Text>
             <FlatList
               data={cart}
-              keyExtractor={(item, idx) => item.id + "-" + idx}
+              keyExtractor={(item: ICartItem, idx) => item.id + "-" + idx}
               renderItem={renderItem}
               scrollEnabled={false}
               style={{ marginBottom: 10 }}

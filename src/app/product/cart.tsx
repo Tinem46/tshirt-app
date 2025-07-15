@@ -5,6 +5,7 @@ import {
   updateCartItemAPI,
 } from "@/app/utils/apiall";
 import { APP_COLOR } from "@/app/utils/constant";
+import { COLOR_LABELS, SIZE_LABELS } from "@/components/Enums/enumMaps";
 import { useCurrentApp } from "@/context/app.context";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -22,15 +23,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Enum map giống backend
-const SIZE_ENUM_MAP = { 1: "S", 2: "M", 3: "L", 4: "XL", 5: "XXL" };
-const COLOR_ENUM_MAP = {
-  0: "Đen",
-  1: "Đỏ",
-  2: "Xanh",
-  3: "Lục",
-  4: "Vàng",
-  5: "Trắng",
-};
+
 const fallbackImg = "https://dosi-in.com/images/detailed/42/CDL10_1.jpg";
 
 const CartPage = () => {
@@ -200,14 +193,14 @@ const CartPage = () => {
           <View style={styles.attrRow}>
             <Text style={styles.attr}>
               Size:{" "}
-              {SIZE_ENUM_MAP[detail.size] ||
+              {SIZE_LABELS[detail.size] ||
                 detail.size ||
                 item.productVariantName?.split(" - ")[1] ||
                 "—"}
             </Text>
             <Text style={styles.attr}>
               Màu:{" "}
-              {COLOR_ENUM_MAP[detail.color] ||
+              {COLOR_LABELS[detail.color] ||
                 detail.color ||
                 item.productVariantName?.split(" - ")[0] ||
                 "—"}

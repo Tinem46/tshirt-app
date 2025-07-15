@@ -22,12 +22,12 @@ const CustomHeader = () => {
         >
           <Feather name="plus-circle" size={24} />
         </TouchableOpacity>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.iconButton}
           onPress={() => router.push("/product/likeProduct")}
         >
           <AntDesign name="hearto" size={24} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => router.push("/product/cart")}

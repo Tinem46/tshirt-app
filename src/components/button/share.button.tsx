@@ -81,7 +81,7 @@ const ShareButton = ({
           buttonStyle,
         ]}
       >
-        {loading && <ActivityIndicator size="small" color="#000" />}
+        {loading && <ActivityIndicator size="small" color="white" />}
         {icon}
         <Text
           style={[

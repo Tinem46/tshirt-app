@@ -115,6 +115,7 @@ const Login = () => {
                 alignItems: "center",
                 borderRadius: 30,
                 paddingHorizontal: 120,
+                // backgroundColor: "#f57c00",
               }}
               textStyle={{ color: "white", paddingVertical: 6 }}
               pressStyle={{ alignSelf: "center" }}
@@ -139,7 +140,7 @@ const Login = () => {
                 marginVertical: 15,
               }}
             >
-              <Text style={{ color: "black" }}>Don't have an account?</Text>
+              <Text style={{ color: "black" }}>Don&apos;t have an account?</Text>
               <Link href={"/(auth)/signup"}>
                 <Text
                   style={{ color: "black", textDecorationLine: "underline" }}

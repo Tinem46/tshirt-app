@@ -6,9 +6,10 @@ const URL_ANROID_BACKEND = process.env.EXPO_PUBLIC_ANDROID_API_URL;
 const URL_IOS_BACKEND = process.env.EXPO_PUBLIC_IOS_API_URL;
 const backend = Platform.OS === "android" ? URL_ANROID_BACKEND : URL_IOS_BACKEND;
 
+
 export const api = axios.create({
   baseURL: `${backend}/api/`,
-  timeout: 20 * 1000,
+  timeout: 60 * 1000,
 });
 
 api.interceptors.request.use(async function (config) {

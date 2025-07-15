@@ -36,7 +36,9 @@ const AccountPage = () => {
           source={{ uri: `${baseImgage}/${appState?.user.avatar}` }}
           style={styles.avatar}
         /> */}
-        <Text style={styles.username}>{appState?.user.firstName}</Text>
+        {/* <Text style={styles.username}>
+          {appState?.user.firstName || "User"}
+        </Text> */}
       </View>
 
       {/* Options */}

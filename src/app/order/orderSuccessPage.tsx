@@ -12,8 +12,8 @@ import {
 } from "react-native";
 
 import { router, useLocalSearchParams } from "expo-router";
-import { getOrderDetailAPI } from "../utils/apiall";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { getOrderDetailAPI } from "../utils/apiall";
 
 const FormatCost = ({ value }: { value: number }) => (
   <Text style={{ fontWeight: "bold" }}>
@@ -36,7 +36,7 @@ const OrderSuccessPage = () => {
     }
 
     const fetchOrder = async () => {
-        console.log (`Fetching order details for ID: ${orderId}`);
+      console.log(`Fetching order details for ID: ${orderId}`);
       try {
         setLoading(true);
         const res = await getOrderDetailAPI(orderId); // Sử dụng API mới
@@ -98,111 +98,110 @@ const OrderSuccessPage = () => {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-    <ScrollView style={styles.container}>
-      <View style={styles.resultBlock}>
-        <Ionicons name="happy-outline" size={64} color="#38d63b" />
-        <Text style={styles.resultTitle}>Đặt hàng thành công!</Text>
-        <Text style={styles.resultSub}>
-          <Text style={{ fontWeight: "bold" }}>Mã đơn hàng: </Text>
-          <Text style={{ color: "#38d63b" }}>{orderNumber || id}</Text>
-        </Text>
-        <Text style={styles.resultSub}>
-          Ngày đặt: {createdAt ? new Date(createdAt).toLocaleString() : "--"}
-        </Text>
-        <View style={styles.resultBtns}>
-          <TouchableOpacity
-            onPress={() => router.push("/")}
-            style={[styles.btn, styles.btnHome]}
-          >
-            <Feather name="home" size={18} color="#fff" />
-            <Text style={styles.btnText}>Về trang chủ</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("MyOrders")}
-            style={[styles.btn, styles.btnOrders]}
-          >
-            <Ionicons name="receipt-outline" size={20} color="#fff" />
-            <Text style={styles.btnText}>Xem đơn hàng của tôi</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Thông tin giao hàng */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Thông tin giao hàng</Text>
-        <View style={styles.descRow}>
-          <Text style={styles.descLabel}>Người nhận:</Text>
-          <Text style={styles.descValue}>{receiverName}</Text>
-        </View>
-        <View style={styles.descRow}>
-          <Text style={styles.descLabel}>Số điện thoại:</Text>
-          <Text style={styles.descValue}>{receiverPhone}</Text>
-        </View>
-        <View style={styles.descRow}>
-          <Text style={styles.descLabel}>Địa chỉ:</Text>
-          <Text style={styles.descValue}>{shippingAddress}</Text>
-        </View>
-        <View style={styles.descRow}>
-          <Text style={styles.descLabel}>Hình thức giao hàng:</Text>
-          <Text style={styles.descValue}>{shippingMethodName}</Text>
-        </View>
-      </View>
-
-      {/* Thông tin đơn hàng */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Thông tin đơn hàng</Text>
-        {(orderItems || []).map((item: any) => (
-          <View style={styles.orderItem} key={item.id}>
-            {item.image && (
-              <Image source={{ uri: item.image }} style={styles.itemImg} />
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: "bold" }}>{item.itemName}</Text>
-              <Text style={{ color: "#666", fontSize: 13 }}>
-                {item.selectedColor && `Màu: ${item.selectedColor} `}
-                {item.selectedSize && `Size: ${item.selectedSize}`}
-              </Text>
-            </View>
-            <View style={{ alignItems: "flex-end", minWidth: 70 }}>
-              <Text>
-                SL: <Text style={{ fontWeight: "bold" }}>{item.quantity}</Text>
-              </Text>
-              <FormatCost value={item.unitPrice * item.quantity} />
-            </View>
-          </View>
-        ))}
-      </View>
-
-      {/* Tổng kết */}
-      <View style={styles.totalsBlock}>
-        <Text style={styles.totalRow}>
-          Phí vận chuyển: <FormatCost value={shippingFee} />
-        </Text>
-        <Text style={styles.totalRow}>
-          Thuế: <FormatCost value={taxAmount} />
-        </Text>
-        <Text style={styles.totalRow}>
-          Tổng tiền hàng: <FormatCost value={subtotalAmount} />
-        </Text>
-        <Text style={styles.totalRowBold}>
-          Tổng thanh toán:{" "}
-          <Text style={{ color: "#e02828" }}>
-            <FormatCost value={totalAmount} />
+      <ScrollView style={styles.container}>
+        <View style={styles.resultBlock}>
+          <Ionicons name="happy-outline" size={64} color="#38d63b" />
+          <Text style={styles.resultTitle}>Đặt hàng thành công!</Text>
+          <Text style={styles.resultSub}>
+            <Text style={{ fontWeight: "bold" }}>Mã đơn hàng: </Text>
+            <Text style={{ color: "#38d63b" }}>{orderNumber || id}</Text>
           </Text>
-        </Text>
-      </View>
+          <Text style={styles.resultSub}>
+            Ngày đặt: {createdAt ? new Date(createdAt).toLocaleString() : "--"}
+          </Text>
+          <View style={styles.resultBtns}>
+            <TouchableOpacity
+              onPress={() => router.push("/")}
+              style={[styles.btn, styles.btnHome]}
+            >
+              <Feather name="home" size={18} color="#fff" />
+              <Text style={styles.btnText}>Về trang chủ</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              // onPress={() => navigation.navigate("MyOrders")}
+              style={[styles.btn, styles.btnOrders]}
+            >
+              <Ionicons name="receipt-outline" size={20} color="#fff" />
+              <Text style={styles.btnText}>Xem đơn hàng của tôi</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-      <View style={{ marginTop: 22, alignItems: "center" }}>
-        <Text style={{ fontWeight: "bold", color: "#555" }}>
-          Phương thức thanh toán:
-        </Text>
-        <Text style={{ color: "#444", marginTop: 4 }}>
-          {paymentType === "COD"
-            ? "Thanh toán khi nhận hàng"
-            : paymentType || ""}
-        </Text>
-      </View>
-    </ScrollView>
+        {/* Thông tin giao hàng */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Thông tin giao hàng</Text>
+          <View style={styles.descRow}>
+            <Text style={styles.descLabel}>Người nhận:</Text>
+            <Text style={styles.descValue}>{receiverName}</Text>
+          </View>
+          <View style={styles.descRow}>
+            <Text style={styles.descLabel}>Số điện thoại:</Text>
+            <Text style={styles.descValue}>{receiverPhone}</Text>
+          </View>
+          <View style={styles.descRow}>
+            <Text style={styles.descLabel}>Địa chỉ:</Text>
+            <Text style={styles.descValue}>{shippingAddress}</Text>
+          </View>
+          <View style={styles.descRow}>
+            <Text style={styles.descLabel}>Hình thức giao hàng:</Text>
+            <Text style={styles.descValue}>{shippingMethodName}</Text>
+          </View>
+        </View>
+
+        {/* Thông tin đơn hàng */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Thông tin đơn hàng</Text>
+          {(orderItems || []).map((item: any) => (
+            <View style={styles.orderItem} key={item.id}>
+              {item.image && (
+                <Image source={{ uri: item.image }} style={styles.itemImg} />
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: "bold" }}>{item.variantName}</Text>
+                <Text style={{ color: "#666", fontSize: 13 }}>
+                  {item.selectedColor && `Màu: ${item.selectedColor} `}
+                  {item.selectedSize && `Size: ${item.selectedSize}`}
+                </Text>
+              </View>
+              <View style={{ alignItems: "flex-end", minWidth: 70 }}>
+                <Text>
+                  SL:{" "}
+                  <Text style={{ fontWeight: "bold" }}>{item.quantity}</Text>
+                </Text>
+                <FormatCost value={item.unitPrice * item.quantity} />
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Tổng kết */}
+        <View style={styles.totalsBlock}>
+          <Text style={styles.totalRow}>
+            Phí vận chuyển: <FormatCost value={shippingFee} />
+          </Text>
+
+          <Text style={styles.totalRow}>
+            Tổng tiền hàng: <FormatCost value={subtotalAmount} />
+          </Text>
+          <Text style={styles.totalRowBold}>
+            Tổng thanh toán:{" "}
+            <Text style={{ color: "#e02828" }}>
+              <FormatCost value={totalAmount} />
+            </Text>
+          </Text>
+        </View>
+
+        <View style={{ marginTop: 22, alignItems: "center" }}>
+          <Text style={{ fontWeight: "bold", color: "#555" }}>
+            Phương thức thanh toán:
+          </Text>
+          <Text style={{ color: "#444", marginTop: 4 }}>
+            {paymentType === "COD"
+              ? "Thanh toán khi nhận hàng"
+              : paymentType || ""}
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
