@@ -147,21 +147,13 @@ export default function ReviewScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#ff4d4f" />
+          
         </TouchableOpacity>
         <Text style={styles.title}>Đánh giá sản phẩm</Text>
         <View style={styles.placeholder} />
       </View>
 
-      {/* Reward Banner */}
-      <View style={styles.rewardBanner}>
-        <Coins size={20} color="#ff9500" />
-        <Text style={styles.rewardText}>
-          Xem Hướng dẫn đánh giá chuẩn để nhận đến{' '}
-          <Text style={styles.rewardHighlight}>200 xu</Text> !
-        </Text>
-        <Text style={styles.rewardArrow}>›</Text>
-      </View>
+    
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {productList.map((product, index) => {
@@ -196,9 +188,8 @@ export default function ReviewScreen() {
 
               <View style={styles.imageSection}>
                 <Text style={styles.sectionTitle}>
-                  Thêm ít nhất 1 hình ảnh về sản phẩm
-                  <Text style={styles.rewardPoints}> +200 </Text>
-                  <Coins size={16} color="#ff9500" />
+                  Thêm hình ảnh về sản phẩm
+                 
                 </Text>
                 
                 <TouchableOpacity style={styles.addImageButton}>
@@ -231,7 +222,6 @@ export default function ReviewScreen() {
                 </Text>
               </View>
 
-              {index < productList.length - 1 && <View style={styles.divider} />}
             </View>
           );
         })}
@@ -276,6 +266,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+    paddingTop:30,
+    paddingLeft: 10
   },
   placeholder: {
     width: 32,
@@ -424,11 +416,6 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'right',
     marginTop: 4,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#f0f0f0',
-    marginVertical: 20,
   },
   footer: {
     backgroundColor: '#fff',
