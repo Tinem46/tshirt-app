@@ -63,10 +63,20 @@ const AccountPage = () => {
           <MaterialIcons name="navigate-next" size={24} color="#999" />
         </Pressable>
 
-        <Pressable style={styles.itemContainer}>
+        <Pressable
+          onPress={() => router.push("/(user)/address")}
+          style={styles.itemContainer}>
           <View style={styles.item}>
-            <Feather name="headphones" size={20} />
+            <Feather name="map-pin" size={20} />
             <Text style={styles.itemText}>Địa chỉ</Text>
+          </View>
+          <MaterialIcons name="navigate-next" size={24} color="#999" />
+        </Pressable>
+        
+        <Pressable onPress={() => router.push("/(user)/orders")} style={styles.itemContainer}>
+          <View style={styles.item}>
+            <Feather name="shopping-bag" size={20} />
+            <Text style={styles.itemText}>Đơn mua</Text>
           </View>
           <MaterialIcons name="navigate-next" size={24} color="#999" />
         </Pressable>

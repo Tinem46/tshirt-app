@@ -124,3 +124,80 @@ export interface IModelPaginate<T> {
     }
     results: T[];
 }
+
+export interface IAddress {
+  id?: string;
+  receiverName: string;
+  phone: string;
+  detailAddress: string;
+  province: string;
+  district: string;
+  ward: string;
+  isDefault: boolean;
+}
+
+export interface IOrder {
+  id: string;
+  orderNumber: string;
+  userId: string;
+  subtotalAmount: number;
+  totalAmount: number;
+  shippingFee: number;
+  discountAmount: number;
+  refundAmount: number;
+  finalTotal: number;
+
+  status: number;
+  paymentStatus: number;
+
+  shippingAddress: string;
+  receiverName: string;
+  receiverPhone: string;
+  customerNotes?: string;
+
+  estimatedDeliveryDate?: string;
+  trackingNumber?: string;
+  cancellationReason?: string;
+
+  assignedStaffId?: string;
+  couponId?: string;
+  shippingMethodId?: string;
+
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+  updatedBy?: string;
+
+  userName?: string;
+  assignedStaffName?: string;
+  couponCode?: string;
+  shippingMethodName?: string;
+
+  orderItems: IOrderItem[];
+}
+
+export interface IOrderItem {
+  id: string;
+  orderId: string;
+  productId: string;
+  customDesignId?: string;
+  productVariantId: string;
+  itemName: string;
+  selectedColor: string;
+  selectedSize: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  productName: string;
+  customDesignName?: string;
+  variantName?: string;
+}
+
+export interface IReviewCreate {
+  productId: string;
+  orderId: string;
+  rating: number;
+  content: string;
+  images: string[];
+}
+

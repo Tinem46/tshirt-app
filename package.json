@@ -24,6 +24,7 @@
     "debounce": "^2.2.0",
     "dotenv": "^16.5.0",
     "expo": "~53.0.10",
+    "expo-auth-session": "~6.2.1",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",
     "expo-font": "~13.3.1",
@@ -39,6 +40,7 @@
     "expo-web-browser": "~14.1.6",
     "formik": "^2.4.6",
     "jwt-decode": "^4.0.0",
+    "lucide-react-native": "^0.525.0",
     "react": "19.0.0",
     "react-content-loader": "^7.0.2",
     "react-dom": "19.0.0",
@@ -56,8 +58,7 @@
     "react-native-tabs-section-list": "^1.0.1",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
-    "yup": "^1.6.1",
-    "expo-auth-session": "~6.2.1"
+    "yup": "^1.6.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
