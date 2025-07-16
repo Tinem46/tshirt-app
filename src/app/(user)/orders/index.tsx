@@ -17,7 +17,7 @@ import { Image } from 'expo-image';
 import { Search, ShoppingCart, Star, MessageCircle, X, Check, ArrowLeft, Filter } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { getMyOrdersAPI, confirmDeliveredAPI } from '../../utils/orderService';
-import { CancelOrderModal } from '../../../components/modal/CancelOrderModal';
+import { CancelOrderModal } from '../../../components/modal/cancelOrderModal';
 import { IOrder } from '@/app/types/model';
 import Toast from 'react-native-root-toast';
 

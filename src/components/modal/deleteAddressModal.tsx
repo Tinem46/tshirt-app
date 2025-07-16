@@ -10,23 +10,25 @@ import {
     Animated,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { TriangleAlert as AlertTriangle, X } from 'lucide-react-native';
-import { cancelOrderAPI } from '../../app/utils/orderService';
+import { Trash2, X } from 'lucide-react-native';
+import { deleteAddress } from '../../app/utils/addressService';
 import Toast from 'react-native-root-toast';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-interface CancelOrderModalProps {
+interface DeleteAddressModalProps {
     visible: boolean;
     onClose: () => void;
-    orderId: string | null;
+    addressId: string | null;
+    addressName?: string;
     onSuccess?: () => void;
 }
 
-export const CancelOrderModal: React.FC<CancelOrderModalProps> = ({
+export const DeleteAddressModal: React.FC<DeleteAddressModalProps> = ({
     visible,
     onClose,
-    orderId,
+    addressId,
+    addressName,
     onSuccess
 }) => {
     const [loading, setLoading] = useState(false);
@@ -49,13 +51,13 @@ export const CancelOrderModal: React.FC<CancelOrderModalProps> = ({
         }
     }, [visible]);
 
-    const handleCancel = async () => {
-        if (!orderId) return;
+    const handleDelete = async () => {
+        if (!addressId) return;
 
         setLoading(true);
         try {
-            await cancelOrderAPI(orderId);
-            Toast.show("Huỷ đơn hàng thành công!", {
+            await deleteAddress(addressId);
+            Toast.show("Xóa địa chỉ thành công!", {
                 duration: Toast.durations.SHORT,
                 position: Toast.positions.CENTER,
                 backgroundColor: "#10B981",
@@ -66,8 +68,8 @@ export const CancelOrderModal: React.FC<CancelOrderModalProps> = ({
             onSuccess?.();
             onClose();
         } catch (error) {
-            console.error("lỗi hủy đơn", error);
-            Toast.show("Không thể hủy đơn hàng", {
+            console.error("Lỗi xóa địa chỉ:", error);
+            Toast.show("Không thể xóa địa chỉ", {
                 duration: Toast.durations.SHORT,
                 position: Toast.positions.BOTTOM,
                 backgroundColor: "#EF4444",
@@ -117,16 +119,19 @@ export const CancelOrderModal: React.FC<CancelOrderModalProps> = ({
                     {/* Icon */}
                     <View style={styles.iconContainer}>
                         <View style={styles.iconWrapper}>
-                            <AlertTriangle size={32} color="#EF4444" />
+                            <Trash2 size={32} color="#EF4444" />
                         </View>
                     </View>
 
                     {/* Content */}
                     <View style={styles.contentContainer}>
-                        <Text style={styles.modalTitle}>Xác nhận hủy đơn hàng</Text>
+                        <Text style={styles.modalTitle}>Xóa địa chỉ</Text>
                         <Text style={styles.modalDescription}>
-                            Bạn có chắc chắn muốn hủy đơn hàng này không? 
-                            Hành động này không thể hoàn tác.
+                            {addressName ? (
+                                <>Bạn có chắc chắn muốn xóa địa chỉ <Text style={styles.addressName}>"{addressName}"</Text> không? Hành động này không thể hoàn tác.</>
+                            ) : (
+                                "Bạn có chắc chắn muốn xóa địa chỉ này không? Hành động này không thể hoàn tác."
+                            )}
                         </Text>
                     </View>
 
@@ -137,21 +142,21 @@ export const CancelOrderModal: React.FC<CancelOrderModalProps> = ({
                             onPress={handleClose}
                             disabled={loading}
                         >
-                            <Text style={styles.secondaryButtonText}>Giữ đơn hàng</Text>
+                            <Text style={styles.secondaryButtonText}>Hủy</Text>
                         </TouchableOpacity>
                         
                         <TouchableOpacity
                             style={[styles.primaryButton, loading && styles.disabledButton]}
-                            onPress={handleCancel}
+                            onPress={handleDelete}
                             disabled={loading}
                         >
                             {loading ? (
                                 <View style={styles.loadingContainer}>
                                     <ActivityIndicator size="small" color="#fff" />
-                                    <Text style={styles.loadingText}>Đang hủy...</Text>
+                                    <Text style={styles.loadingText}>Đang xóa...</Text>
                                 </View>
                             ) : (
-                                <Text style={styles.primaryButtonText}>Hủy đơn hàng</Text>
+                                <Text style={styles.primaryButtonText}>Xóa địa chỉ</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -236,6 +241,10 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 24,
         paddingHorizontal: 8,
+    },
+    addressName: {
+        fontWeight: '600',
+        color: '#374151',
     },
     actionsContainer: {
         gap: 12,

@@ -6,7 +6,7 @@ export const getMyOrdersAPI = () => {
 };
 
 export const cancelOrderAPI = (orderId: string) => {
-    return api.post<IBackendRes<any>>(`Orders/${orderId}/status`, {
+    return api.patch<IBackendRes<any>>(`Orders/${orderId}/status`, {
         status: 6,
         reason: "Khách hàng hủy",
     });
