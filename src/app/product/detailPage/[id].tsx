@@ -1,4 +1,5 @@
 import { IProduct, IProductVariant } from "@/app/types/model";
+import { getReviewsByVariantId } from "@/app/utils/reviewService";
 import {
   addToCartAPI,
   getProductDetailAPI,
@@ -29,6 +30,7 @@ import { APP_COLOR } from "../../utils/constant";
 
 const { width } = Dimensions.get("window");
 const fallbackImg = "https://dosi-in.com/images/detailed/42/CDL10_1.jpg";
+
 
 // Mapping helpers
 function getColorName(color: any) {
@@ -75,6 +77,19 @@ const DetailPage = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<any[]>([]);
+
+  useEffect(() => {
+  if (variants.length > 0 && variants[0].id) {
+    getReviewsByVariantId(variants[0].id)
+      .then((res) => {
+        const items = res?.data?.data?.items || [];
+        setReviews(items);
+      })
+      .catch(() => setReviews([]));
+  }
+}, [variants]);
+
 
   // Fetch product & variants
   useEffect(() => {
@@ -110,7 +125,13 @@ const DetailPage = () => {
   }, [id]);
 
   // Lấy size/màu
-  const uniqueSizes = [...new Set(variants.map((v) => v.size))];
+  // Thứ tự size đúng: XXXL -> XS
+const sizeOrder = [0, 1, 2, 3, 4, 5, 6];
+
+const uniqueSizes = sizeOrder.filter((s) =>
+  variants.some((v) => v.size === s)
+);
+
   const uniqueColors = [...new Set(variants.map((v) => v.color))];
   const filteredColors = selectedSize
     ? [
@@ -119,13 +140,12 @@ const DetailPage = () => {
         ),
       ]
     : uniqueColors;
-  const filteredSizes = selectedColor
-    ? [
-        ...new Set(
-          variants.filter((v) => v.color === selectedColor).map((v) => v.size)
-        ),
-      ]
-    : uniqueSizes;
+ const filteredSizes = selectedColor
+  ? sizeOrder.filter((s) =>
+      variants.some((v) => v.color === selectedColor && v.size === s)
+    )
+  : uniqueSizes;
+
 
   // Thumbnail scroll
   const scrollRef = useRef<ScrollView>(null);
@@ -372,34 +392,80 @@ const DetailPage = () => {
 
           {/* Nút hành động */}
           <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={styles.cartButton}
-              onPress={handleAddToCart}
-            >
-              <Text style={styles.buttonText}>Thêm Vào Giỏ</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.buyButton} onPress={handleBuyNow}>
-              <Text style={styles.buttonText}>Mua Ngay</Text>
-            </TouchableOpacity>
+           <TouchableOpacity style={styles.cartButton} onPress={handleAddToCart}>
+  <Ionicons name="cart-outline" size={18} color="#1e88e5" />
+  <Text style={[styles.buttonText, styles.cartButtonText]}>Thêm Vào Giỏ</Text>
+</TouchableOpacity>
+
+<TouchableOpacity style={styles.buyButton} onPress={handleBuyNow}>
+  <Ionicons name="flash" size={18} color="#fff" />
+  <Text style={[styles.buttonText, styles.buyButtonText]}>Mua Ngay</Text>
+</TouchableOpacity>
+
           </View>
           {/* Chi tiết sản phẩm */}
           <View style={styles.detailBox}>
             <Text style={styles.sectionTitle}>Chi tiết sản phẩm:</Text>
-            <Text>
-              - Kích thước:{" "}
-              {uniqueSizes.length > 0
-                ? uniqueSizes.map(getSizeName).join(" - ")
-                : "Không có"}
-            </Text>
-            <Text>
-              - Màu:{" "}
-              {uniqueColors.length > 0
-                ? uniqueColors.map(getColorName).join(" - ")
-                : "Không có"}
-            </Text>
-            <Text>- SKU: {product.sku || "Không có"}</Text>
-            <Text>- Mô tả: {product.description || "Không có"}</Text>
+            <Text style={styles.detailText}>
+  <Ionicons name="resize" size={14} color="#666" /> Kích thước:{" "}
+  {uniqueSizes.length > 0 ? uniqueSizes.map(getSizeName).join(" - ") : "Không có"}
+</Text>
+
+<Text style={styles.detailText}>
+  <Ionicons name="color-palette-outline" size={14} color="#666" /> Màu:{" "}
+  {uniqueColors.length > 0 ? uniqueColors.map(getColorName).join(" - ") : "Không có"}
+</Text>
+
+<Text style={styles.detailText}>
+  <Ionicons name="pricetag-outline" size={14} color="#666" /> SKU: {product.sku || "Không có"}
+</Text>
+
+<Text style={styles.detailText}>
+  <Ionicons name="document-text-outline" size={14} color="#666" /> Mô tả:{" "}
+  {product.description || "Không có"}
+</Text>
           </View>
+          <View style={styles.reviewBox}>
+  <Text style={styles.sectionTitle}>Đánh giá từ người mua:</Text>
+  {reviews.length === 0 ? (
+    <Text style={styles.detailText}>Chưa có đánh giá nào.</Text>
+  ) : (
+    reviews.map((review, idx) => {
+      const images =
+        typeof review.images === "string"
+          ? JSON.parse(review.images)
+          : Array.isArray(review.images)
+          ? review.images
+          : [];
+
+      return (
+        <View key={`review_${idx}`} style={styles.reviewItem}>
+          <Text style={styles.reviewUser}>{review.user?.fullName || "Người dùng"}</Text>
+          <Text style={styles.reviewDate}>
+            {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+          </Text>
+          <Text style={styles.reviewRating}>⭐ {review.rating} sao</Text>
+          <Text style={styles.reviewContent}>{review.content}</Text>
+
+          {images.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+              {images.map((img: string, i: number) => (
+                <Image
+                  key={`r_img_${i}`}
+                  source={{ uri: img }}
+                  style={styles.reviewImage}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      );
+    })
+  )}
+</View>
+
+        
+          
         </View>
         {/* Modal ảnh lớn */}
         <Modal visible={modalVisible} transparent={true}>
@@ -426,7 +492,7 @@ const DetailPage = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  mainImage: { width: "100%", height: width, backgroundColor: "#eee" },
+  mainImage: { width: "100%", height: width, backgroundColor: "#f2f2f2", borderRadius: 12 },
   thumbnailSection: {
     flexDirection: "row",
     alignItems: "center",
@@ -434,10 +500,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   thumbNavBtn: {
-    padding: 4,
-    marginHorizontal: 2,
-    borderRadius: 22,
-    backgroundColor: "#f4f4f4",
+    padding: 6,
+    marginHorizontal: 4,
+    borderRadius: 24,
+    backgroundColor: "#e0e0e0",
   },
   thumbnailContainer: {
     flexDirection: "row",
@@ -445,89 +511,192 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   thumbnail: {
-    width: 70,
-    height: 70,
+    width: 68,
+    height: 68,
     marginRight: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#ccc",
-    backgroundColor: "#f8f8f8",
+    backgroundColor: "#f9f9f9",
   },
-  activeThumbnail: { borderColor: "black", borderWidth: 2 },
-  content: { paddingHorizontal: 15 },
-  title: { fontSize: 20, fontWeight: "600", marginBottom: 5 },
+  activeThumbnail: { borderColor: "#000", borderWidth: 2 },
+  content: { paddingHorizontal: 16 },
+  title: { fontSize: 24, fontWeight: "700", marginBottom: 4, color: "#111" },
   price: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "600",
     color: "#e53935",
-    marginBottom: 10,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    marginTop: 10,
-    marginBottom: 5,
+    marginTop: 16,
+    marginBottom: 8,
+    color: "#444",
   },
-  sizeContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  sizeContainer: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   sizeButton: {
     borderWidth: 1,
-    borderColor: "#999",
-    borderRadius: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     marginRight: 10,
     marginBottom: 10,
+    backgroundColor: "#f5f5f5",
   },
   sizeButtonSelected: {
-    backgroundColor: APP_COLOR.ORANGE,
-    borderColor: APP_COLOR.ORANGE,
+    backgroundColor: "#1a73e8",
+    borderColor: "#1a73e8",
   },
   sizeText: { fontSize: 14, color: "#333" },
-  sizeTextSelected: { color: "#fff", fontWeight: "bold" },
+  sizeTextSelected: { color: "#fff", fontWeight: "600" },
   colorContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   colorCircle: {
     borderWidth: 1,
-    borderColor: "#999",
-    borderRadius: 17,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    borderColor: "#ccc",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     marginRight: 10,
     marginBottom: 10,
     backgroundColor: "#fff",
   },
   colorCircleActive: {
-    borderColor: APP_COLOR.ORANGE,
+    borderColor: "#1a73e8",
+    borderWidth: 2,
   },
   colorText: { fontSize: 14, color: "#333" },
-  colorTextActive: { fontWeight: "bold" },
+  colorTextActive: { fontWeight: "600" },
   buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginVertical: 15,
-  },
-  cartButton: {
-    flex: 1,
-    marginRight: 10,
-    backgroundColor: "orange",
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  buyButton: {
-    flex: 1,
-    backgroundColor: "black",
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  buttonText: { textAlign: "center", fontWeight: "bold", color: "#fff" },
-  detailBox: { paddingBottom: 40 },
+  flexDirection: "row",
+  justifyContent: "space-between",
+  marginVertical: 24,
+  gap: 12,
+},
+cartButton: {
+  flex: 1,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "#ffffff",
+  borderWidth: 1.5,
+  borderColor: "#1e88e5", // blue
+  paddingVertical: 14,
+  borderRadius: 12,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.08,
+  shadowRadius: 3,
+  elevation: 2,
+},
+buyButton: {
+  flex: 1,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "#ff6d00",  // orange
+  paddingVertical: 14,
+  borderRadius: 12,
+  elevation: 3,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+},
+buttonText: {
+  fontSize: 16,
+  fontWeight: "700",
+  marginLeft: 6,
+},
+cartButtonText: {
+  color: "#1e88e5",
+},
+buyButtonText: {
+  color: "#fff",
+},
+  detailBox: {
+  marginTop: 20,
+  backgroundColor: "#fff",
+  padding: 16,
+  borderRadius: 16,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.06,
+  shadowRadius: 6,
+  elevation: 3,
+  marginHorizontal: 16,
+},
+
+detailTitle: {
+  fontSize: 16,
+  fontWeight: "700",
+  color: "#333",
+  marginBottom: 10,
+},
+
+detailText: {
+  fontSize: 14,
+  color: "#444",
+  lineHeight: 20,
+  marginBottom: 4,
+},
+
   modalContainer: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "rgba(0,0,0,0.95)",
     justifyContent: "center",
     alignItems: "center",
   },
   fullImage: { width: "100%", height: "80%" },
   closeIcon: { position: "absolute", top: 40, right: 20 },
+  reviewBox: {
+  marginTop: 20,
+  backgroundColor: "#fdfdfd",
+  padding: 16,
+  borderRadius: 12,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.05,
+  shadowRadius: 2,
+  elevation: 1,
+},
+reviewItem: {
+  marginBottom: 16,
+  borderBottomWidth: 1,
+  borderBottomColor: "#eee",
+  paddingBottom: 12,
+},
+reviewUser: {
+  fontWeight: "600",
+  fontSize: 14,
+  color: "#222",
+},
+reviewDate: {
+  fontSize: 12,
+  color: "#888",
+  marginBottom: 4,
+},
+reviewRating: {
+  fontSize: 14,
+  color: "#f39c12",
+  marginBottom: 4,
+},
+reviewContent: {
+  fontSize: 14,
+  color: "#444",
+},
+reviewImage: {
+  width: 80,
+  height: 80,
+  borderRadius: 8,
+  marginRight: 10,
+  backgroundColor: "#f0f0f0",
+},
+
 });
+
+
 
 export default DetailPage;

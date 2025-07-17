@@ -9,3 +9,6 @@ export const createReviewAPI = (review: IReviewCreate) => {
 export const getReviewByUserId = (userId: string) => {
   return api.get<IBackendRes<any>>("reviews", { params: { UserId: userId } });
 };
+export const getReviewsByVariantId = (variantId: string) => {
+  return api.get<IBackendRes<any>>(`reviews/product-by-variant/${variantId}`);
+};
