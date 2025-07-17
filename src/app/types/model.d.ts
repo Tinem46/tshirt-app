@@ -194,7 +194,7 @@ export interface IOrderItem {
 }
 
 export interface IReviewCreate {
-  productId: string;
+  productVariantId: string;
   orderId: string;
   rating: number;
   content: string;

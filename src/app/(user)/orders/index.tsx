@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import { IOrder } from '@/app/types/model';
+import { getReviewByUserId } from '@/app/utils/reviewService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Image } from 'expo-image';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Check, Search, ShoppingCart, Star, X } from 'lucide-react-native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
+  RefreshControl,
   ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  Platform,
-  RefreshControl,
-  StatusBar
+  View
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
-import { Search, ShoppingCart, Star, MessageCircle, X, Check, ArrowLeft, Filter } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
-import { getMyOrdersAPI, confirmDeliveredAPI } from '../../utils/orderService';
-import { CancelOrderModal } from '../../../components/modal/cancelOrderModal';
-import { IOrder } from '@/app/types/model';
 import Toast from 'react-native-root-toast';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CancelOrderModal } from '../../../components/modal/cancelOrderModal';
+import { confirmDeliveredAPI, getMyOrdersAPI } from '../../utils/orderService';
 
 const STATUS = {
   all: -1,
@@ -67,6 +67,8 @@ const TABS = [
   { key: 'returned', label: 'Đã hoàn tiền' },
 ];
 
+
+
 export default function OrdersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -77,6 +79,7 @@ export default function OrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [reviewVariantIds, setReviewedVariantIds] = useState<string[]>([]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -107,16 +110,32 @@ export default function OrdersScreen() {
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+   const fetchUserReviews = async () => {
+    const userId = await AsyncStorage.getItem("userId");
+    if (userId) {
+      const res = await getReviewByUserId(userId);
+      if (res?.data) {
+        const ids = res.data.map((r: any) => r.productVariantId);
+        setReviewedVariantIds(ids);
+      }
+    }
+  };
+
+
+   useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+      fetchUserReviews();
+    }, [])
+  );
+
 
   const filteredOrders = orders.filter((order) => {
     const matchesTab = activeTab === 'all' ? true : order.status === STATUS[activeTab as keyof typeof STATUS];
-    const matchesSearch = 
+    const matchesSearch =
       order.orderNumber?.toLowerCase().includes(search.toLowerCase()) ||
       order.receiverName?.toLowerCase().includes(search.toLowerCase()) ||
-      order.orderItems?.some((item) => 
+      order.orderItems?.some((item) =>
         item.itemName?.toLowerCase().includes(search.toLowerCase())
       );
     return matchesTab && matchesSearch;
@@ -146,13 +165,13 @@ export default function OrdersScreen() {
 
   const handleOpenReviewModal = (order: IOrder) => {
     const productList = order.orderItems.map((item) => ({
-      productId: item.productId,
+      productVariantId: item.productVariantId,
       orderId: order.id,
       name: item.itemName,
       image: "https://via.placeholder.com/150",
       category: item.variantName || `${item.selectedColor} - ${item.selectedSize}`,
     }));
-    
+
     router.push({
       pathname: '/review',
       params: {
@@ -180,7 +199,16 @@ export default function OrdersScreen() {
 
   const renderOrderActions = (order: IOrder) => {
     const actions = [];
-    
+
+    const allReviewed = order.orderItems.every(item => reviewVariantIds.includes(item.productVariantId));
+    const noneReviewed = order.orderItems.every(item => !reviewVariantIds.includes(item.productVariantId));
+
+    console.log("Reviewed variant ids: ", reviewVariantIds)
+    order.orderItems.forEach(item => {
+      console.log("OrderItem variantId: ", item.productVariantId)
+    });
+
+
     switch (order.status) {
       case STATUS.pending:
       case STATUS.paid:
@@ -208,23 +236,36 @@ export default function OrdersScreen() {
         );
         break;
       case STATUS.delivered:
-        actions.push(
-          <TouchableOpacity
-            key="review"
-            style={[styles.actionButton, styles.reviewButton]}
-            onPress={() => handleOpenReviewModal(order)}
-          >
-            <Star size={16} color="#fff" />
-            <Text style={styles.actionButtonText}>Đánh giá</Text>
-          </TouchableOpacity>
-        );
+        if (noneReviewed) {
+          actions.push(
+            <TouchableOpacity
+              key="review"
+              style={[styles.actionButton, styles.reviewButton]}
+              onPress={() => handleOpenReviewModal(order)}
+            >
+              <Star size={16} color="#fff" />
+              <Text style={styles.actionButtonText}>Đánh giá</Text>
+            </TouchableOpacity>
+          );
+        } else if (allReviewed) {
+          actions.push(
+            <TouchableOpacity
+              key="review-again"
+              style={[styles.actionButton, styles.reviewButton]}
+              // onPress={() => handleOpenReviewModal(order)}
+            >
+              <Star size={16} color="#fff" />
+              <Text style={styles.actionButtonText}>Đánh giá lại</Text>
+            </TouchableOpacity>
+          );
+        }
         break;
       case STATUS.completed:
         actions.push(
           <TouchableOpacity
             key="buyAgain"
             style={[styles.actionButton, styles.buyAgainButton]}
-            onPress={() => {}}
+            onPress={() => { }}
           >
             <ShoppingCart size={16} color="#fff" />
             <Text style={styles.actionButtonText}>Mua lại</Text>
@@ -234,7 +275,7 @@ export default function OrdersScreen() {
       default:
         break;
     }
-    
+
     return actions;
   };
 
@@ -258,7 +299,7 @@ export default function OrdersScreen() {
               style={styles.productImage}
             />
             <View style={styles.productInfo}>
-              <Text style={styles.productName}>{item.itemName}</Text>
+              <Text style={styles.productName}>{item.variantName}</Text>
               <Text style={styles.productVariant}>
                 Phân loại: {item.selectedColor} - {item.selectedSize}
               </Text>
@@ -290,7 +331,7 @@ export default function OrdersScreen() {
             </Text>
           )}
         </View>
-        
+
         <View style={styles.priceBreakdown}>
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Tạm tính:</Text>
@@ -322,9 +363,9 @@ export default function OrdersScreen() {
   );
 
   return (
-    <SafeAreaView  style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#6366f1" />
-      
+
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Đơn hàng của tôi</Text>
