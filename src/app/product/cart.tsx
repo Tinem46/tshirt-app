@@ -18,26 +18,27 @@ import {
   Image,
   StyleSheet,
   Text,
+  TextInput, // Import TextInput
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const fallbackImg = "https://dosi-in.com/images/detailed/42/CDL10_1.jpg";
-const SELECTED_KEYS_STORAGE_KEY = '@cart_selected_keys'; // Khóa để lưu trữ
+const SELECTED_KEYS_STORAGE_KEY = '@cart_selected_keys';
 
 const CartPage = () => {
-  // Lấy các hàm cần thiết từ context, không cần lấy state lựa chọn nữa
   const { setCart, setCheckoutData } = useCurrentApp();
   
-  // State vẫn được quản lý trong component
   const [cartDetails, setCartDetails] = useState<any[]>([]);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [cartId, setCartId] = useState<string | null>(null);
+  // *** BƯỚC 1: THÊM STATE CHO TÌM KIẾM ***
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Hàm lưu các lựa chọn vào AsyncStorage
+  // Các hàm lưu/tải từ AsyncStorage giữ nguyên
   const saveSelectedKeysToStorage = async (keys: string[]) => {
     try {
       const jsonValue = JSON.stringify(keys);
@@ -47,7 +48,6 @@ const CartPage = () => {
     }
   };
 
-  // Hàm tải các lựa chọn từ AsyncStorage
   const loadSelectedKeysFromStorage = async () => {
     try {
       const jsonValue = await AsyncStorage.getItem(SELECTED_KEYS_STORAGE_KEY);
@@ -87,7 +87,6 @@ const CartPage = () => {
     }
   };
 
-  // Sử dụng useFocusEffect để tải dữ liệu và khôi phục lựa chọn khi vào màn hình
   useFocusEffect(
     useCallback(() => {
       const loadData = async () => {
@@ -101,7 +100,6 @@ const CartPage = () => {
     }, [])
   );
 
-  // Dọn dẹp các lựa chọn không còn tồn tại trong giỏ hàng
   useEffect(() => {
     const currentCartIds = new Set(cartDetails.map((item) => item.id));
     const cleanedKeys = selectedKeys.filter((id) => currentCartIds.has(id));
@@ -111,7 +109,7 @@ const CartPage = () => {
     }
   }, [cartDetails, selectedKeys]);
   
-  // Các hàm tương tác giờ sẽ gọi hàm lưu trữ
+  // Các hàm tương tác giữ nguyên
   const toggleSelect = (id: string) => {
     const newKeys = selectedKeys.includes(id)
       ? selectedKeys.filter((x) => x !== id)
@@ -197,6 +195,12 @@ const CartPage = () => {
       .filter((item) => selectedKeys.includes(item.id))
       .reduce((sum, item) => sum + (item.unitPrice || 0) * (item.quantity || 1), 0);
 
+  // *** BƯỚC 2: LỌC DANH SÁCH SẢN PHẨM DỰA TRÊN TÌM KIẾM ***
+  const filteredCartDetails = cartDetails.filter(item => {
+    const itemName = (item.detail?.productName || item.productVariantName || '').toLowerCase();
+    return itemName.includes(searchQuery.toLowerCase());
+  });
+
   const renderItem = ({ item }: { item: any }) => {
     const detail = item.detail || {};
     const imageUrl = detail.imageUrl || fallbackImg;
@@ -231,6 +235,19 @@ const CartPage = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}><MaterialIcons name="shopping-cart-checkout" size={28} color={APP_COLOR.ORANGE} /><Text style={styles.title}>Giỏ Hàng</Text></View>
+      
+      {/* *** BƯỚC 3: THÊM THANH TÌM KIẾM VÀO GIAO DIỆN *** */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+        <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm kiếm sản phẩm trong giỏ..."
+            placeholderTextColor="#999"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+        />
+      </View>
+
       <View style={styles.selectBar}>
         <TouchableOpacity onPress={selectAll} style={styles.selectAction}><Text style={{ color: APP_COLOR.ORANGE, fontWeight: "bold" }}>Chọn tất cả</Text></TouchableOpacity>
         <TouchableOpacity onPress={clearAll} style={styles.selectAction}><Text style={{ color: "#777" }}>Bỏ chọn</Text></TouchableOpacity>
@@ -242,9 +259,18 @@ const CartPage = () => {
         : !cartDetails.length ? (
           <View style={styles.emptyContainer}>
             <Image source={{ uri: "https://bizweb.dktcdn.net/100/368/179/themes/738982/assets/empty-cart.png?1712982025915" }} style={styles.emptyImage} resizeMode="contain" />
+            <Text style={styles.emptyText}>Giỏ hàng của bạn đang trống</Text>
             <TouchableOpacity style={styles.emptyButton} onPress={() => router.navigate("/product/shop")}><Text style={styles.emptyButtonText}>Mua sắm ngay</Text></TouchableOpacity>
           </View>
-        ) : (<FlatList data={cartDetails} keyExtractor={(item) => item.id} renderItem={renderItem} contentContainerStyle={{ paddingBottom: 150, paddingTop: 8 }} />)}
+        ) 
+        // *** BƯỚC 4: HIỂN THỊ THÔNG BÁO KHI KHÔNG TÌM THẤY KẾT QUẢ ***
+        : !filteredCartDetails.length ? (
+            <View style={styles.emptyContainer}>
+                <Ionicons name="search-circle-outline" size={80} color="#ccc" />
+                <Text style={styles.emptyText}>Không tìm thấy sản phẩm nào khớp với "{searchQuery}"</Text>
+            </View>
+        )
+        : (<FlatList data={filteredCartDetails} keyExtractor={(item) => item.id} renderItem={renderItem} contentContainerStyle={{ paddingBottom: 150, paddingTop: 8 }} />)}
       </View>
       {!loading && cartDetails.length > 0 && (
         <View style={styles.footer}>
@@ -263,11 +289,32 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FFF" },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
   title: { fontSize: 22, fontWeight: "bold", marginLeft: 12, color: "#212529" },
-  selectBar: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#F8F9FA' },
-  selectAction: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: "#FFF", borderRadius: 20, borderWidth: 1, borderColor: "#E9ECEF" },
+  // *** BƯỚC 5: THÊM STYLE CHO THANH TÌM KIẾM ***
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginTop: 10,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 15,
+    color: '#333',
+  },
+  selectBar: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, paddingVertical: 10, paddingHorizontal: 16, marginTop: 5 },
+  selectAction: { paddingHorizontal: 12, paddingVertical: 6, backgroundColor: "#F8F9FA", borderRadius: 20, borderWidth: 1, borderColor: "#E9ECEF" },
   emptyContainer: { alignItems: "center", justifyContent: 'center', flex: 1, paddingHorizontal: 20, backgroundColor: '#FFF' },
   emptyImage: { width: 150, height: 150, marginBottom: 20 },
-  emptyText: { fontSize: 18, color: "#6C757D", marginBottom: 20, textAlign: 'center' },
+  emptyText: { fontSize: 18, color: "#6C757D", marginTop: 16, marginBottom: 20, textAlign: 'center' },
   emptyButton: { backgroundColor: APP_COLOR.ORANGE, paddingVertical: 12, paddingHorizontal: 30, borderRadius: 50 },
   emptyButtonText: { color: "#FFF", fontWeight: "bold", fontSize: 16 },
   itemContainer: { flexDirection: "row", backgroundColor: "#fff", borderRadius: 16, marginVertical: 8, marginHorizontal: 16, padding: 12, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 3, borderWidth: 2, borderColor: 'transparent' },
