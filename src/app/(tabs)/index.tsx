@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import GestureRecognizer from "react-native-swipe-gestures";
 
@@ -109,34 +109,30 @@ const ShopHomeScreen = () => {
 
             {/* Product Info */}
             <View style={styles.contentContainer}>
-              <View style={{ marginBottom: 18 }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: 6,
-                  }}
-                >
-                  <MaterialIcons
-                    name="wb-sunny"
-                    size={20}
-                    color="#000"
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text
-                    style={{
-                      fontWeight: "bold",
-                      fontSize: 13,
-                      letterSpacing: 1,
-                    }}
-                  >
-                    UV PROTECTION
-                  </Text>
+              <View style={styles.contentBox}>
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                  <MaterialIcons name="wb-sunny" size={20} color="#111" style={{ marginRight: 4 }} />
+                  <Text style={{ fontWeight: "bold", fontSize: 13, letterSpacing: 1, color: "#111" }}>UV PROTECTION</Text>
                 </View>
                 <Text style={styles.productTitle}>{cat.productTitle}</Text>
                 <Text style={styles.desc}>{cat.desc}</Text>
                 <Text style={styles.price}>{cat.price}</Text>
                 {/* {cat.subDesc && <Text style={styles.subDesc}>{cat.subDesc}</Text>} */}
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={styles.buyBtn}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/product/[id]",
+                        params: { id: cat.id },
+                      })
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons name="shopping-cart" size={22} color="#fff" />
+                    <Text style={styles.buyBtnText}>Xem sản phẩm</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </ImageBackground>
@@ -207,6 +203,33 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 8,
   },
+  buttonRow: {
+    flexDirection: "row",
+    marginTop: 20,
+    gap: 10,
+  },
+  buyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#111",
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    borderRadius: 30,
+    borderWidth: 1.5,
+    borderColor: "#111",
+    shadowColor: "#111",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  buyBtnText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+    marginLeft: 8,
+    letterSpacing: 0.2,
+  },
   // subDesc: {
   //   color: "orange",
   //   fontSize: 14,
@@ -214,6 +237,17 @@ const styles = StyleSheet.create({
   //   marginTop: 8,
   //   maxWidth: width * 0.92,
   // },
+  contentBox: {
+    backgroundColor: "rgba(255,255,255,0.85)",
+    borderRadius: 18,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 12,
+    elevation: 4,
+    width: "100%",
+  },
 });
 
 export default ShopHomeScreen;
