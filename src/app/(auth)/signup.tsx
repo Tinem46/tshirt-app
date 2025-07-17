@@ -5,7 +5,7 @@ import TextBetweenLine from "@/components/text/textline";
 import { Link, router } from "expo-router";
 import { Formik } from "formik";
 import { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Toast from "react-native-root-toast";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { registerApi } from "../utils/apiall";
@@ -60,140 +60,151 @@ const SignUpPage = () => {
   };
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <Formik
-        validationSchema={RegisterSchema}
-        initialValues={{
-          email: "",
-          password: "",
-          firstName: "",
-          lastName: "",
-          gender: true,
-        }}
-        onSubmit={(values) => {
-          handleSignUp(
-            values.email,
-            values.password,
-            values.firstName,
-            values.lastName,
-            values.gender ? 0 : 1 // 0=Nam, 1=Nữ
-          );
-        }}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
       >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-          setFieldValue,
-        }) => (
-          <View style={styles.conntainer}>
-            <View>
-              <Text style={styles.textTitle}>Sign Up </Text>
-            </View>
-            <ShareInput
-              title="Email"
-              keyboardType="email-address"
-              onChangeText={handleChange("email")}
-              onBlur={handleBlur("email")}
-              value={values.email}
-              error={errors.email}
-              touched={touched.email}
-            />
-            <ShareInput
-              title="Password"
-              secureTextEntry={true}
-              onChangeText={handleChange("password")}
-              onBlur={handleBlur("password")}
-              value={values.password}
-              error={errors.password}
-              touched={touched.password}
-            />
-            <ShareInput
-              title="First Name"
-              onChangeText={handleChange("firstName")}
-              onBlur={handleBlur("firstName")}
-              value={values.firstName}
-              error={errors.firstName}
-              touched={touched.firstName}
-            />
-            <ShareInput
-              title="Last Name"
-              onChangeText={handleChange("lastName")}
-              onBlur={handleBlur("lastName")}
-              value={values.lastName}
-              error={errors.lastName}
-              touched={touched.lastName}
-            />
-            <View style={styles.genderGroup}>
-              <Text style={styles.genderTitle}>Giới tính</Text>
-              <View style={styles.genderOptions}>
-                <TouchableOpacity
-                  style={styles.genderOption}
-                  onPress={() => setFieldValue("gender", true)}
-                >
-                  <View style={styles.genderCircle}>
-                    {values.gender === true && (
-                      <View style={styles.genderCircleSelected} />
-                    )}
-                  </View>
-                  <Text>Nam</Text>
-                </TouchableOpacity>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Formik
+            validationSchema={RegisterSchema}
+            initialValues={{
+              email: "",
+              password: "",
+              firstName: "",
+              lastName: "",
+              gender: true,
+            }}
+            onSubmit={(values) => {
+              handleSignUp(
+                values.email,
+                values.password,
+                values.firstName,
+                values.lastName,
+                values.gender ? 0 : 1 // 0=Nam, 1=Nữ
+              );
+            }}
+          >
+            {({
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              values,
+              errors,
+              touched,
+              setFieldValue,
+            }) => (
+              <View style={styles.conntainer}>
+                <View>
+                  <Text style={styles.textTitle}>Sign Up </Text>
+                </View>
+                <ShareInput
+                  title="Email"
+                  keyboardType="email-address"
+                  onChangeText={handleChange("email")}
+                  onBlur={handleBlur("email")}
+                  value={values.email}
+                  error={errors.email}
+                  touched={touched.email}
+                />
+                <ShareInput
+                  title="Password"
+                  secureTextEntry={true}
+                  onChangeText={handleChange("password")}
+                  onBlur={handleBlur("password")}
+                  value={values.password}
+                  error={errors.password}
+                  touched={touched.password}
+                />
+                <ShareInput
+                  title="First Name"
+                  onChangeText={handleChange("firstName")}
+                  onBlur={handleBlur("firstName")}
+                  value={values.firstName}
+                  error={errors.firstName}
+                  touched={touched.firstName}
+                />
+                <ShareInput
+                  title="Last Name"
+                  onChangeText={handleChange("lastName")}
+                  onBlur={handleBlur("lastName")}
+                  value={values.lastName}
+                  error={errors.lastName}
+                  touched={touched.lastName}
+                />
+                <View style={styles.genderGroup}>
+                  <Text style={styles.genderTitle}>Giới tính</Text>
+                  <View style={styles.genderOptions}>
+                    <TouchableOpacity
+                      style={styles.genderOption}
+                      onPress={() => setFieldValue("gender", true)}
+                    >
+                      <View style={styles.genderCircle}>
+                        {values.gender === true && (
+                          <View style={styles.genderCircleSelected} />
+                        )}
+                      </View>
+                      <Text>Nam</Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.genderOption}
-                  onPress={() => setFieldValue("gender", false)}
-                >
-                  <View style={styles.genderCircle}>
-                    {values.gender === false && (
-                      <View style={styles.genderCircleSelected} />
-                    )}
+                    <TouchableOpacity
+                      style={styles.genderOption}
+                      onPress={() => setFieldValue("gender", false)}
+                    >
+                      <View style={styles.genderCircle}>
+                        {values.gender === false && (
+                          <View style={styles.genderCircleSelected} />
+                        )}
+                      </View>
+                      <Text>Nữ</Text>
+                    </TouchableOpacity>
                   </View>
-                  <Text>Nữ</Text>
-                </TouchableOpacity>
+
+                  {touched.gender && errors.gender && (
+                    <Text style={styles.genderErrorText}>{errors.gender}</Text>
+                  )}
+                </View>
+
+                <ShareButton
+                  loading={loading}
+                  title="Sign Up"
+                  onPress={handleSubmit}
+                  buttonStyle={{
+                    justifyContent: "center",
+                    alignItems: "center",
+                    borderRadius: 30,
+                    paddingHorizontal: 120,
+                  }}
+                  textStyle={{ color: "white", paddingVertical: 6 }}
+                  pressStyle={{ alignSelf: "center" }}
+                />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 10,
+                    marginVertical: 15,
+                  }}
+                >
+                  <Text style={{ color: "black" }}>Have you account?</Text>
+                  <Link href={"/"}>
+                    <Text
+                      style={{ color: "black", textDecorationLine: "underline" }}
+                    >
+                      Sign in
+                    </Text>
+                  </Link>
+                </View>
+                <TextBetweenLine color="black" />
+                <SocialButton />
               </View>
-
-              {touched.gender && errors.gender && (
-                <Text style={styles.genderErrorText}>{errors.gender}</Text>
-              )}
-            </View>
-
-            <ShareButton
-              loading={loading}
-              title="Sign Up"
-              onPress={handleSubmit as any}
-              buttonStyle={{
-                justifyContent: "center",
-                alignItems: "center",
-                borderRadius: 30,
-                paddingHorizontal: 120,
-              }}
-              textStyle={{ color: "white", paddingVertical: 6 }}
-              pressStyle={{ alignSelf: "center" }}
-            />
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                gap: 10,
-                marginVertical: 15,
-              }}
-            >
-              <Text style={{ color: "black" }}>Have you account?</Text>
-              <Link href={"/"}>
-                <Text
-                  style={{ color: "black", textDecorationLine: "underline" }}
-                >
-                  Sign in
-                </Text>
-              </Link>
-            </View>
-            <TextBetweenLine color="black" />
-            <SocialButton />
-          </View>
-        )}
-      </Formik>
+            )}
+          </Formik>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

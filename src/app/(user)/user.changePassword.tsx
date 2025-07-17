@@ -2,7 +2,7 @@ import ShareButton from "@/components/button/share.button";
 import ShareInput from "@/components/input/share.input";
 import { Formik, FormikProps } from "formik";
 import { useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import Toast from "react-native-root-toast";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { updatePasswordAPI } from "../utils/apiall";
@@ -43,99 +43,110 @@ const ChangePassword = () => {
   };
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <Formik
-        innerRef={formikRef}
-        validationSchema={ChangePassSchema}
-        initialValues={{
-          oldPassword: "",
-          newPassword: "",
-          confirmPassword: "",
-        }}
-        onSubmit={(values) =>
-          handleChange(
-            values?.oldPassword ?? "",
-            values?.newPassword ?? "",
-            values?.confirmPassword ?? ""
-          )
-        }
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
       >
-        {({
-          handleChange,
-          handleBlur,
-          handleSubmit,
-          values,
-          errors,
-          touched,
-          isValid,
-          dirty,
-        }) => (
-          <View style={styles.conntainer}>
-            <ShareInput
-              secureTextEntry={true}
-              title="Mật khẩu hiện tại"
-              onChangeText={handleChange("currentPassword")}
-              onBlur={handleBlur("currentPassword")}
-              value={values.currentPassword}
-              error={errors.currentPassword}
-              touched={touched.currentPassword}
-            />
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Formik
+            innerRef={formikRef}
+            validationSchema={ChangePassSchema}
+            initialValues={{
+              oldPassword: "",
+              newPassword: "",
+              confirmPassword: "",
+            }}
+            onSubmit={(values) =>
+              handleChange(
+                values?.oldPassword ?? "",
+                values?.newPassword ?? "",
+                values?.confirmPassword ?? ""
+              )
+            }
+          >
+            {({
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              values,
+              errors,
+              touched,
+              isValid,
+              dirty,
+            }) => (
+              <View style={styles.conntainer}>
+                <ShareInput
+                  secureTextEntry={true}
+                  title="Mật khẩu hiện tại"
+                  onChangeText={handleChange("currentPassword")}
+                  onBlur={handleBlur("currentPassword")}
+                  value={values.currentPassword}
+                  error={errors.currentPassword}
+                  touched={touched.currentPassword}
+                />
 
-            <ShareInput
-              title="Mật khẩu"
-              secureTextEntry={true}
-              onChangeText={handleChange("newPassword")}
-              onBlur={handleBlur("newPassword")}
-              value={values.newPassword}
-              error={errors.newPassword}
-              touched={touched.newPassword}
-            />
+                <ShareInput
+                  title="Mật khẩu"
+                  secureTextEntry={true}
+                  onChangeText={handleChange("newPassword")}
+                  onBlur={handleBlur("newPassword")}
+                  value={values.newPassword}
+                  error={errors.newPassword}
+                  touched={touched.newPassword}
+                />
 
-            <ShareInput
-              title="Nhập lại mật khẩu"
-              secureTextEntry={true}
-              onChangeText={handleChange("confirmPassword")}
-              onBlur={handleBlur("confirmPassword")}
-              value={values.confirmPassword}
-              error={errors.confirmPassword}
-              touched={touched.confirmPassword}
-            />
-            <View style={{ marginTop: 15 }}></View>
-            <ShareButton
-              useDynamicStyle={true}
-              loading={loading}
-              title="Lưu thay đổi"
-              onPress={handleSubmit as any}
-              disabled={
-                !(
-                  isValid &&
-                  dirty &&
-                  values.currentPassword &&
-                  values.newPassword &&
-                  values.confirmPassword
-                )
-              }
-              isValid={isValid}
-              dirty={dirty}
-              buttonStyle={{
-                justifyContent: "center",
-                alignItems: "center",
-                paddingHorizontal: 120,
-              }}
-              textStyle={{ paddingVertical: 6 }}
-              pressStyle={{ alignSelf: "center" }}
-            />
+                <ShareInput
+                  title="Nhập lại mật khẩu"
+                  secureTextEntry={true}
+                  onChangeText={handleChange("confirmPassword")}
+                  onBlur={handleBlur("confirmPassword")}
+                  value={values.confirmPassword}
+                  error={errors.confirmPassword}
+                  touched={touched.confirmPassword}
+                />
+                <View style={{ marginTop: 15 }}></View>
+                <ShareButton
+                  useDynamicStyle={true}
+                  loading={loading}
+                  title="Lưu thay đổi"
+                  onPress={handleSubmit as any}
+                  disabled={
+                    !(
+                      isValid &&
+                      dirty &&
+                      values.currentPassword &&
+                      values.newPassword &&
+                      values.confirmPassword
+                    )
+                  }
+                  isValid={isValid}
+                  dirty={dirty}
+                  buttonStyle={{
+                    justifyContent: "center",
+                    alignItems: "center",
+                    paddingHorizontal: 120,
+                  }}
+                  textStyle={{ paddingVertical: 6 }}
+                  pressStyle={{ alignSelf: "center" }}
+                />
 
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "center",
-                gap: 10,
-                marginVertical: 15,
-              }}
-            ></View>
-          </View>
-        )}
-      </Formik>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 10,
+                    marginVertical: 15,
+                  }}
+                ></View>
+              </View>
+            )}
+          </Formik>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };

@@ -16,8 +16,8 @@ import {
 import Toast from "react-native-root-toast";
 import { UpdateUserSchema } from "../utils/validate.schema";
 
-import { APP_COLOR } from "../utils/constant";
 import { getUserInfoAPI } from "../utils/apiall";
+import { APP_COLOR } from "../utils/constant";
 
 // Giới tính
 const GENDERS = [
@@ -110,16 +110,14 @@ const ProfilePage = () => {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
     >
       <ScrollView
-        style={{
-          flex: 1,
-          backgroundColor: "#f7f8fa",
-          padding: 20,
-          paddingTop: 50,
-        }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
           <Image

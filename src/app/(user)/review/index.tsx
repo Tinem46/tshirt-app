@@ -3,14 +3,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Camera, Star } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import Toast from 'react-native-root-toast';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -150,102 +152,114 @@ export default function ReviewScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+    >
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <SafeAreaView style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
 
-        </TouchableOpacity>
-        <Text style={styles.title}>Đánh giá sản phẩm</Text>
-        <View style={styles.placeholder} />
-      </View>
+            </TouchableOpacity>
+            <Text style={styles.title}>Đánh giá sản phẩm</Text>
+            <View style={styles.placeholder} />
+          </View>
 
 
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {productList.map((product, index) => {
-          const review = reviews[index] || {};
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            {productList.map((product, index) => {
+              const review = reviews[index] || {};
 
-          return (
-            <View key={index} style={styles.productReview}>
-              <View style={styles.productHeader}>
-                <Image
-                  source={{ uri: product.image || "https://via.placeholder.com/150" }}
-                  style={styles.productImage}
-                />
-                <View style={styles.productInfo}>
-                  <Text style={styles.productCategory}>
-                    {product.category}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.ratingSection}>
-                <Text style={styles.sectionTitle}>Đánh giá sản phẩm</Text>
-                <View style={styles.ratingContainer}>
-                  {renderStars(review.rating, (star) =>
-                    handleChange(index, 'rating', star)
-                  )}
-                </View>
-                <Text style={styles.ratingText}>
-                  {ratingTexts[review.rating]}
-                </Text>
-              </View>
-
-              <View style={styles.imageSection}>
-                <Text style={styles.sectionTitle}>
-                  Thêm hình ảnh về sản phẩm
-
-                </Text>
-
-                <TouchableOpacity style={styles.addImageButton}>
-                  <View style={styles.imageUploadArea}>
-                    <Camera size={32} color="#999" />
-                    <Text style={styles.addImageText}>Hình ảnh</Text>
+              return (
+                <View key={index} style={styles.productReview}>
+                  <View style={styles.productHeader}>
+                    <Image
+                      source={{ uri: product.image || "https://via.placeholder.com/150" }}
+                      style={styles.productImage}
+                    />
+                    <View style={styles.productInfo}>
+                      <Text style={styles.productCategory}>
+                        {product.category}
+                      </Text>
+                    </View>
                   </View>
-                </TouchableOpacity>
-              </View>
 
-              <View style={styles.reviewSection}>
-                <Text style={styles.sectionTitle}>
-                  Viết đánh giá từ 50 ký tự
-                </Text>
-                <Text style={styles.reviewSubtitle}>
-                  Chất lượng sản phẩm:
-                </Text>
-                <TextInput
-                  style={styles.reviewInput}
-                  multiline
-                  numberOfLines={4}
-                  maxLength={500}
-                  value={review.content}
-                  onChangeText={(text) => handleChange(index, 'content', text)}
-                  placeholder="Hãy chia sẻ nhận xét cho sản phẩm này bạn nhé!"
-                  placeholderTextColor="#ccc"
-                />
-                <Text style={styles.characterCount}>
-                  {review.content?.length || 0} ký tự
-                </Text>
-              </View>
+                  <View style={styles.ratingSection}>
+                    <Text style={styles.sectionTitle}>Đánh giá sản phẩm</Text>
+                    <View style={styles.ratingContainer}>
+                      {renderStars(review.rating, (star) =>
+                        handleChange(index, 'rating', star)
+                      )}
+                    </View>
+                    <Text style={styles.ratingText}>
+                      {ratingTexts[review.rating]}
+                    </Text>
+                  </View>
 
-            </View>
-          );
-        })}
+                  <View style={styles.imageSection}>
+                    <Text style={styles.sectionTitle}>
+                      Thêm hình ảnh về sản phẩm
+
+                    </Text>
+
+                    <TouchableOpacity style={styles.addImageButton}>
+                      <View style={styles.imageUploadArea}>
+                        <Camera size={32} color="#999" />
+                        <Text style={styles.addImageText}>Hình ảnh</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.reviewSection}>
+                    <Text style={styles.sectionTitle}>
+                      Viết đánh giá từ 50 ký tự
+                    </Text>
+                    <Text style={styles.reviewSubtitle}>
+                      Chất lượng sản phẩm:
+                    </Text>
+                    <TextInput
+                      style={styles.reviewInput}
+                      multiline
+                      numberOfLines={4}
+                      maxLength={500}
+                      value={review.content}
+                      onChangeText={(text) => handleChange(index, 'content', text)}
+                      placeholder="Hãy chia sẻ nhận xét cho sản phẩm này bạn nhé!"
+                      placeholderTextColor="#ccc"
+                    />
+                    <Text style={styles.characterCount}>
+                      {review.content?.length || 0} ký tự
+                    </Text>
+                  </View>
+
+                </View>
+              );
+            })}
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={[styles.submitButton, loading && styles.disabledButton]}
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.submitButtonText}>Gửi</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
       </ScrollView>
-
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.submitButton, loading && styles.disabledButton]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.submitButtonText}>Gửi</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

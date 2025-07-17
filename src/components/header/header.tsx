@@ -7,7 +7,19 @@ const CustomHeader = () => {
   const pathname = usePathname();
   // Các path chính không hiển thị nút back
   const mainScreens = ["/", "/search", "/account"];
+  // Các route auth không hiển thị icon
+  const authRoutes = [
+    "/login",
+    "/signup",
+    "/forgot.password",
+    "/request.password",
+    "/verify"
+  ];
   const isMainScreen = mainScreens.includes(pathname);
+  const isAuthScreen = authRoutes.includes(pathname);
+  if (isAuthScreen) {
+    return <View style={styles.headerContainer} />;
+  }
   return (
     <View style={styles.headerContainer}>
       {isMainScreen ? (

@@ -1,23 +1,23 @@
 import {
-  calculateCartTotalAPI,
-  getUserAddressesAPI,
-  getUserInfoAPI,
+    calculateCartTotalAPI,
+    getUserAddressesAPI,
+    getUserInfoAPI,
 } from "@/app/utils/apiall";
 import { useCurrentApp } from "@/context/app.context";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    FlatList,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ICartItem } from "../types/model";
@@ -164,12 +164,15 @@ const CheckoutPage = () => {
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
       >
         <ScrollView
           style={styles.container}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.header}>Thông tin giao hàng</Text>
           {/* --- Form --- */}
