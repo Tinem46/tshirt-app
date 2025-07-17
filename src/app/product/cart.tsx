@@ -242,7 +242,6 @@ const CartPage = () => {
         : !cartDetails.length ? (
           <View style={styles.emptyContainer}>
             <Image source={{ uri: "https://bizweb.dktcdn.net/100/368/179/themes/738982/assets/empty-cart.png?1712982025915" }} style={styles.emptyImage} resizeMode="contain" />
-            <Text style={styles.emptyText}>Giỏ hàng của bạn đang trống</Text>
             <TouchableOpacity style={styles.emptyButton} onPress={() => router.navigate("/product/shop")}><Text style={styles.emptyButtonText}>Mua sắm ngay</Text></TouchableOpacity>
           </View>
         ) : (<FlatList data={cartDetails} keyExtractor={(item) => item.id} renderItem={renderItem} contentContainerStyle={{ paddingBottom: 150, paddingTop: 8 }} />)}
