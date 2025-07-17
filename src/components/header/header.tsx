@@ -1,20 +1,31 @@
-import { AntDesign, Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { Feather } from "@expo/vector-icons";
+import { router, usePathname } from "expo-router";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 const CustomHeader = () => {
+  const pathname = usePathname();
+  // Các path chính không hiển thị nút back
+  const mainScreens = ["/", "/search", "/account"];
+  const isMainScreen = mainScreens.includes(pathname);
   return (
     <View style={styles.headerContainer}>
-      <TouchableOpacity
-        style={styles.leftIcon}
-        onPress={() => router.push("/")}
-      >
-        <Feather name="home" size={24} />
-      </TouchableOpacity>
-
+      {isMainScreen ? (
+        <TouchableOpacity
+          style={styles.leftIcon}
+          onPress={() => router.push("/")}
+        >
+          <Feather name="home" size={24} />
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.leftIcon}
+          onPress={() => router.back()}
+        >
+          <Feather name="arrow-left" size={24} />
+        </TouchableOpacity>
+      )}
       <View style={{ flex: 1 }} />
-
       <View style={styles.iconGroup}>
         <TouchableOpacity
           style={styles.iconButton}
