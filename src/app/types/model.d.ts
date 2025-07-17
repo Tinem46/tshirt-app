@@ -1,5 +1,5 @@
 
-export { };
+    export { };
 declare global {
     interface IBackendRes<T>{
         error?: string | string[];
