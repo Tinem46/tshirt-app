@@ -1,31 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import { Image } from 'expo-image';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Camera, Star } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
-import { Star, Camera, ArrowLeft, Coins } from 'lucide-react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { createReviewAPI } from '../../utils/reviewService';
 import Toast from 'react-native-root-toast';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { createReviewAPI } from '../../utils/reviewService';
 
 const ratingTexts: { [key: number]: string } = {
   1: "Rất Tệ",
-  2: "Tệ", 
+  2: "Tệ",
   3: "Bình Thường",
   4: "Tốt",
   5: "Tuyệt Vời",
 };
 
 interface Product {
-  productId: string;
+  productVariantId: string;
   orderId: string;
   name: string;
   image: string;
@@ -87,7 +87,7 @@ export default function ReviewScreen() {
     setLoading(true);
     try {
       const reviewDataList = productList.map((product, index) => ({
-        productId: product.productId,
+        productVariantId: product.productVariantId,
         orderId: product.orderId,
         rating: reviews[index].rating,
         content: reviews[index].content.trim(),
@@ -95,18 +95,24 @@ export default function ReviewScreen() {
       }));
 
       await Promise.all(reviewDataList.map((review) => createReviewAPI(review)));
-      
+
       Toast.show("Gửi đánh giá thành công!", {
         duration: Toast.durations.SHORT,
-        position: Toast.positions.BOTTOM,
+        position: Toast.positions.CENTER,
+        backgroundColor: "#10B981",
+        textColor: "#fff",
+        shadow: true,
       });
-      
+
       router.back();
     } catch (error) {
       console.error("❌ Lỗi khi gửi đánh giá:", error);
       Toast.show("Gửi đánh giá thất bại. Vui lòng thử lại sau.", {
         duration: Toast.durations.SHORT,
-        position: Toast.positions.BOTTOM,
+        position: Toast.positions.CENTER,
+        backgroundColor: "#b91e10ff",
+        textColor: "#fff",
+        shadow: true,
       });
     } finally {
       setLoading(false);
@@ -147,18 +153,18 @@ export default function ReviewScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          
+
         </TouchableOpacity>
         <Text style={styles.title}>Đánh giá sản phẩm</Text>
         <View style={styles.placeholder} />
       </View>
 
-    
+
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {productList.map((product, index) => {
           const review = reviews[index] || {};
-          
+
           return (
             <View key={index} style={styles.productReview}>
               <View style={styles.productHeader}>
@@ -167,7 +173,6 @@ export default function ReviewScreen() {
                   style={styles.productImage}
                 />
                 <View style={styles.productInfo}>
-                  <Text style={styles.productName}>{product.name}</Text>
                   <Text style={styles.productCategory}>
                     {product.category}
                   </Text>
@@ -177,7 +182,7 @@ export default function ReviewScreen() {
               <View style={styles.ratingSection}>
                 <Text style={styles.sectionTitle}>Đánh giá sản phẩm</Text>
                 <View style={styles.ratingContainer}>
-                  {renderStars(review.rating, (star) => 
+                  {renderStars(review.rating, (star) =>
                     handleChange(index, 'rating', star)
                   )}
                 </View>
@@ -189,9 +194,9 @@ export default function ReviewScreen() {
               <View style={styles.imageSection}>
                 <Text style={styles.sectionTitle}>
                   Thêm hình ảnh về sản phẩm
-                 
+
                 </Text>
-                
+
                 <TouchableOpacity style={styles.addImageButton}>
                   <View style={styles.imageUploadArea}>
                     <Camera size={32} color="#999" />
@@ -228,8 +233,8 @@ export default function ReviewScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity 
-          style={[styles.submitButton, loading && styles.disabledButton]} 
+        <TouchableOpacity
+          style={[styles.submitButton, loading && styles.disabledButton]}
           onPress={handleSubmit}
           disabled={loading}
         >
@@ -266,7 +271,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
-    paddingTop:30,
+    paddingTop: 30,
     paddingLeft: 10
   },
   placeholder: {
