@@ -2,6 +2,7 @@ import {
   fetchDesignHistoryAPI,
   updateDesignStatusAPI,
 } from "@/app/utils/apiall";
+import DesignStatusButton from "@/components/button/desginStatus.button";
 
 import {
   CustomDesignStatus,
@@ -10,7 +11,7 @@ import {
 } from "@/components/Enums/designEnums";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams } from "expo-router"; // expo-router hook
+import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -21,6 +22,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -32,7 +34,6 @@ const TAB_LIST = [
   { key: "draft", label: "Nháp", status: CustomDesignStatus.Draft },
   { key: "liked", label: "Yêu thích", status: CustomDesignStatus.Liked },
   { key: "accepted", label: "Đã duyệt", status: CustomDesignStatus.Accepted },
-  { key: "request", label: "Chờ duyệt", status: CustomDesignStatus.Request },
   { key: "order", label: "Đã đặt hàng", status: CustomDesignStatus.Order },
   {
     key: "shipping",
@@ -45,7 +46,7 @@ const TAB_LIST = [
 ];
 
 const DesignHistoryScreen: React.FC = () => {
-  const params = useLocalSearchParams(); // params.tab lấy giá trị "liked" nếu có
+  const params = useLocalSearchParams();
   const defaultTab = params.tab ? String(params.tab) : "all";
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [loading, setLoading] = useState(false);
@@ -67,18 +68,14 @@ const DesignHistoryScreen: React.FC = () => {
     setLoading(true);
     try {
       const res = await fetchDesignHistoryAPI();
-      console.log("Fetched designs:", res);
       let items = res.items || [];
-      // Lọc theo tab
       if (getStatus() !== -1) {
         items = items.filter((d) => d.status === getStatus());
       }
       setDesigns(items);
-      console.log("Fetched designs:", items);
     } catch {
       setDesigns([]);
       Alert.alert("Không tải được danh sách thiết kế!");
-       
     }
     setLoading(false);
   };
@@ -126,7 +123,6 @@ const DesignHistoryScreen: React.FC = () => {
           }}
           style={styles.cardImage}
         />
-
         <LinearGradient
           colors={["transparent", "rgba(0,0,0,0.1)"]}
           style={styles.imageGradient}
@@ -193,7 +189,12 @@ const DesignHistoryScreen: React.FC = () => {
         {/* ======= Các nút trạng thái đặc biệt ======= */}
         <View style={styles.actionContainer}>
           {item.status === CustomDesignStatus.Accepted && (
-            <TouchableOpacity style={styles.primaryActionBtn}>
+            <DesignStatusButton
+              designId={item.id}
+              status={CustomDesignStatus.Order}
+              style={styles.primaryActionBtn}
+              onSuccess={fetchDesigns}
+            >
               <LinearGradient
                 colors={["#4F46E5", "#7C3AED"]}
                 start={{ x: 0, y: 0 }}
@@ -202,35 +203,47 @@ const DesignHistoryScreen: React.FC = () => {
               >
                 <MaterialCommunityIcons
                   name="cart-plus"
-                  size={18}
+                  size={20}
                   color="#fff"
                 />
                 <Text style={styles.primaryActionBtnText}>Đặt hàng</Text>
               </LinearGradient>
-            </TouchableOpacity>
+            </DesignStatusButton>
           )}
 
           {item.status === CustomDesignStatus.Shipping && (
-            <TouchableOpacity style={styles.primaryActionBtn}>
+            <DesignStatusButton
+              designId={item.id}
+              status={CustomDesignStatus.Delivered}
+              style={styles.primaryActionBtn}
+              onSuccess={fetchDesigns}
+            >
               <LinearGradient
-                colors={["#059669", "#10B981"]}
+                colors={["#06c167", "#10B981"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.gradientBtn}
               >
                 <MaterialCommunityIcons
                   name="truck-delivery"
-                  size={18}
+                  size={20}
                   color="#fff"
                 />
                 <Text style={styles.primaryActionBtnText}>Đã giao hàng</Text>
               </LinearGradient>
-            </TouchableOpacity>
+            </DesignStatusButton>
           )}
         </View>
       </View>
     </View>
   );
+
+  // ==== LỌC DANH SÁCH THEO SEARCH ====
+  const filteredDesigns = search.trim()
+    ? designs.filter((item) =>
+        item.designName?.toLowerCase().includes(search.trim().toLowerCase())
+      )
+    : designs;
 
   return (
     <View style={styles.container}>
@@ -278,6 +291,42 @@ const DesignHistoryScreen: React.FC = () => {
         </ScrollView>
       </View>
 
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <Feather
+          name="search"
+          size={20}
+          color="#6B7280"
+          style={styles.searchIcon}
+        />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Tìm kiếm thiết kế..."
+          placeholderTextColor="#9CA3AF"
+          value={search}
+          onChangeText={setSearch}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+        />
+      </View>
+
+      {search.trim().length > 0 && (
+        <View style={styles.searchInfo}>
+          <Text style={styles.searchInfoText}>
+            Đã tìm thấy{" "}
+            <Text style={styles.resultCount}>{filteredDesigns.length}</Text> kết
+            quả cho "<Text style={styles.searchKeyword}>{search}</Text>"
+          </Text>
+          <TouchableOpacity
+            style={styles.clearSearchBtn}
+            onPress={() => setSearch("")}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="x-circle" size={18} color="#9CA3AF" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Content */}
       <View style={styles.contentContainer}>
         {loading ? (
@@ -285,7 +334,7 @@ const DesignHistoryScreen: React.FC = () => {
             <ActivityIndicator size="large" color="#4F46E5" />
             <Text style={styles.loadingText}>Đang tải thiết kế...</Text>
           </View>
-        ) : designs.length === 0 ? (
+        ) : filteredDesigns.length === 0 ? (
           <View style={styles.emptyWrap}>
             <View style={styles.emptyIconContainer}>
               <Feather name="search" size={48} color="#E5E7EB" />
@@ -297,7 +346,7 @@ const DesignHistoryScreen: React.FC = () => {
           </View>
         ) : (
           <FlatList
-            data={designs}
+            data={filteredDesigns}
             renderItem={renderItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContainer}
@@ -393,6 +442,30 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: "#4F46E5",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    marginHorizontal: 20,
+    marginTop: 18,
+    marginBottom: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    color: "#111827",
   },
   contentContainer: {
     flex: 1,
@@ -533,26 +606,25 @@ const styles = StyleSheet.create({
     marginTop: "auto",
   },
   primaryActionBtn: {
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    elevation: 4,
+    marginTop: 10,
   },
   gradientBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 16,
   },
   primaryActionBtnText: {
     color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
-    marginLeft: 8,
+    fontWeight: "700",
+    fontSize: 14,
+    marginLeft: 10,
+    letterSpacing: 0.2,
   },
   yourDesignBtn: {
     flexDirection: "row",
@@ -570,5 +642,28 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
     marginLeft: 8,
+  },
+
+  searchInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+    marginLeft: 32, // Canh lề với search box
+  },
+  searchInfoText: {
+    color: "#6B7280",
+    fontSize: 14,
+    marginRight: 8,
+  },
+  searchKeyword: {
+    color: "#4F46E5",
+    fontWeight: "bold",
+  },
+  resultCount: {
+    color: "#10B981",
+    fontWeight: "bold",
+  },
+  clearSearchBtn: {
+    marginLeft: 2,
   },
 });

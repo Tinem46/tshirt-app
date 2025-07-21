@@ -83,6 +83,35 @@ const SearchScreen = () => {
           }}
         />
       </View>
+      {searchTerm.trim().length > 0 && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginHorizontal: 14,
+            marginBottom: 4,
+            marginTop: 2,
+          }}
+        >
+          <Text style={{ color: "#666", fontSize: 14 }}>
+            Đã tìm thấy{" "}
+            <Text style={{ color: "#e53935", fontWeight: "bold" }}>
+              {products.length}
+            </Text>{" "}
+            kết quả cho "<Text style={{ color: "#3B82F6" }}>{searchTerm}</Text>"
+          </Text>
+          <Pressable
+            onPress={() => {
+              setSearchTerm("");
+              setProducts([]);
+            }}
+            style={{ marginLeft: 8 }}
+            hitSlop={12}
+          >
+            <MaterialIcons name="cancel" size={18} color="#aaa" />
+          </Pressable>
+        </View>
+      )}
       <View style={{ backgroundColor: "#eee", flex: 1 }}>
         {searchTerm.length === 0 ? (
           <>
@@ -99,7 +128,14 @@ const SearchScreen = () => {
                 marginTop: 150,
               }}
             />
-            <Text style={{ textAlign: "center", color: "#888", fontSize: 16 , marginTop: 10 }}>
+            <Text
+              style={{
+                textAlign: "center",
+                color: "#888",
+                fontSize: 16,
+                marginTop: 10,
+              }}
+            >
               Hãy nhập từ khóa tìm kiếm để xem sản phẩm
             </Text>
           </>

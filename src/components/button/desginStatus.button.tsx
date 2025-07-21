@@ -69,9 +69,6 @@ const DesignStatusButton: React.FC<Props> = ({
     <TouchableOpacity
       style={[
         {
-          backgroundColor: "#111",
-          borderRadius: 8,
-          padding: 12,
           alignItems: "center",
         },
         style,
