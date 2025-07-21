@@ -13,12 +13,13 @@ import {
 
 const itemsPerPage = 8;
 const defaultFilters = {
-  price: undefined,
-  type: undefined, // CategoryId
-  size: undefined,
-  color: undefined,
+  price: "", // Changed from undefined to "" for consistency
+  type: "", // Changed from undefined to ""
+  size: "", // Changed from undefined to ""
+  color: "", // Changed from undefined to ""
   order: "",
-  season: undefined,
+  sortBy: "",
+  season: "", // Changed from undefined to ""
 };
 
 const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
@@ -42,17 +43,6 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
         const arr = Array.isArray(res?.data?.data) ? res.data.data : [];
         setCategories(arr);
 
-        // Set filter.type theo tên truyền vào (vd: T-Shirt)
-        if (productType && !didSetDefaultType.current) {
-          const found = arr.find(
-            (c) =>
-              c.name.trim().toLowerCase() === productType.trim().toLowerCase()
-          );
-          if (found) {
-            setFilters((prev) => ({ ...prev, type: found.id }));
-            didSetDefaultType.current = true;
-          }
-        }
       } catch {
         setCategories([]);
       }
@@ -77,7 +67,9 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
     let params: any = {
       PageNumber: page,
       PageSize: itemsPerPage,
-      SortDirection: filters.order || "",
+      // Backend expects SortBy and SortDirection
+      SortBy: filters.sortBy || "CreatedAt", // Default to 'CreatedAt' if not specified
+      SortDirection: filters.order || "desc", // Default to 'desc' if not specified
     };
     if (searchKeyword && searchKeyword.trim())
       params.Name = searchKeyword.trim();
@@ -121,7 +113,7 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
       const params = buildParams();
       const response = await fetchProductsAPI(params);
 
-      const data = response?.data?.data || [];
+      let data = response?.data?.data || [];
       const totalCount = response?.data?.totalCount || 0;
 
       const withVariant = await Promise.all(
@@ -146,6 +138,7 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
       setTotal(totalCount);
       setHasMore(data.length === itemsPerPage);
     } catch (error) {
+      console.error("Error fetching products:", error); // Log lỗi để dễ debug
       setProductsWithVariant([]);
       setTotal(0);
     } finally {
@@ -159,7 +152,22 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
   };
 
   const handleFilterChange = (key: string, value: string | null) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setFilters((prev) => {
+      // If the changed key is 'order', we also need to set 'sortBy' to 'price'
+      if (key === 'order' && (value === 'asc' || value === 'desc')) {
+        return { ...prev, [key]: value, sortBy: 'price' };
+      } else if (key === 'order' && value === '') { // If 'order' is cleared
+        return { ...prev, [key]: value, sortBy: '' };
+      }
+      return { ...prev, [key]: value };
+    });
+    setPage(1); // Reset page to 1 whenever filters change
+    setHasMore(true); // Assume there's more data when filters change
+  };
+
+  // New function to clear all filters
+  const handleClearFilters = () => {
+    setFilters({ ...defaultFilters });
     setPage(1);
     setHasMore(true);
   };
@@ -171,6 +179,7 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
       <FilterBar
         filters={filters}
         onFilterChange={handleFilterChange}
+        onClearFilters={handleClearFilters} // Pass the new handler
         categories={categories}
       />
       <Text style={styles.productCount}>{total} sản phẩm</Text>
