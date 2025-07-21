@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Check, Search, ShoppingCart, Star, X } from 'lucide-react-native';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -58,7 +58,6 @@ const STATUS_COLORS = {
 const TABS = [
   { key: 'all', label: 'Tất cả' },
   { key: 'pending', label: 'Chờ thanh toán' },
-  { key: 'paid', label: 'Đã thanh toán' },
   { key: 'processing', label: 'Đang xử lý' },
   { key: 'shipping', label: 'Đang vận chuyển' },
   { key: 'delivered', label: 'Đã giao hàng' },
@@ -80,6 +79,7 @@ export default function OrdersScreen() {
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [reviewVariantIds, setReviewedVariantIds] = useState<string[]>([]);
+  const [userReviews, setUserReviews] = useState<any[]>([]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -110,19 +110,22 @@ export default function OrdersScreen() {
     setRefreshing(false);
   };
 
-   const fetchUserReviews = async () => {
+  const fetchUserReviews = async () => {
     const userId = await AsyncStorage.getItem("userId");
     if (userId) {
       const res = await getReviewByUserId(userId);
       if (res?.data) {
         const ids = res.data.map((r: any) => r.productVariantId);
         setReviewedVariantIds(ids);
+        setUserReviews(res.data);
+        console.log("User reviews fetched successfully:", res.data);
+        console.log("User reviews state:", userReviews);
       }
     }
   };
 
 
-   useFocusEffect(
+  useFocusEffect(
     useCallback(() => {
       fetchOrders();
       fetchUserReviews();
@@ -146,7 +149,10 @@ export default function OrdersScreen() {
       await confirmDeliveredAPI(id);
       Toast.show("Bạn đã xác nhận đã nhận hàng thành công!", {
         duration: Toast.durations.SHORT,
-        position: Toast.positions.BOTTOM,
+        position: Toast.positions.CENTER,
+        backgroundColor: "#10B981",
+        textColor: "#fff",
+        shadow: true,
       });
       await fetchOrders();
     } catch (error) {
@@ -163,19 +169,30 @@ export default function OrdersScreen() {
     setCancelModalVisible(true);
   };
 
-  const handleOpenReviewModal = (order: IOrder) => {
-    const productList = order.orderItems.map((item) => ({
-      productVariantId: item.productVariantId,
-      orderId: order.id,
-      name: item.itemName,
-      image: "https://via.placeholder.com/150",
-      category: item.variantName || `${item.selectedColor} - ${item.selectedSize}`,
-    }));
+  const handleOpenReviewModal = (order: IOrder, mode: 'create' | 'update' = 'create') => {
+    const productList = order.orderItems.map((item) => {
+      const oldReview = userReviews.find(
+        r => r.productVariantId === item.productVariantId && r.orderId === order.id
+      );
+      console.log("Old review found:", oldReview);
+      return {
+        productVariantId: item.productVariantId,
+        orderId: order.id,
+        name: item.itemName,
+        image: "https://via.placeholder.com/150",
+        category: item.variantName || `${item.selectedColor} - ${item.selectedSize}`,
+        reviewId: oldReview?.id || null,
+        rating: oldReview?.rating || 5,
+        content: oldReview?.content || "",
+        images: oldReview?.images || [],
+      }
+    })
 
     router.push({
       pathname: '/review',
       params: {
-        products: JSON.stringify(productList)
+        products: JSON.stringify(productList),
+        mode
       }
     });
   };
@@ -252,25 +269,13 @@ export default function OrdersScreen() {
             <TouchableOpacity
               key="review-again"
               style={[styles.actionButton, styles.reviewButton]}
-              // onPress={() => handleOpenReviewModal(order)}
+              onPress={() => handleOpenReviewModal(order, 'update')}
             >
               <Star size={16} color="#fff" />
               <Text style={styles.actionButtonText}>Đánh giá lại</Text>
             </TouchableOpacity>
           );
         }
-        break;
-      case STATUS.completed:
-        actions.push(
-          <TouchableOpacity
-            key="buyAgain"
-            style={[styles.actionButton, styles.buyAgainButton]}
-            onPress={() => { }}
-          >
-            <ShoppingCart size={16} color="#fff" />
-            <Text style={styles.actionButtonText}>Mua lại</Text>
-          </TouchableOpacity>
-        );
         break;
       default:
         break;
@@ -295,11 +300,11 @@ export default function OrdersScreen() {
         {order.orderItems.map((item, index) => (
           <View key={index} style={styles.orderItem}>
             <Image
-              source={{ uri: "https://via.placeholder.com/150" }}
+              source={{ uri: item.imageUrl }}
               style={styles.productImage}
             />
             <View style={styles.productInfo}>
-              <Text style={styles.productName}>{item.variantName}</Text>
+              <Text style={styles.productName}>{item.productName}</Text>
               <Text style={styles.productVariant}>
                 Phân loại: {item.selectedColor} - {item.selectedSize}
               </Text>
@@ -355,6 +360,18 @@ export default function OrdersScreen() {
           </View>
         </View>
       </View>
+
+      {order.status === STATUS.cancelled && order.cancellationReason && (
+        <View style={styles.cancellationSection}>
+          <View style={styles.cancellationHeader}>
+            <X size={16} color="#ff4d4f" />
+            <Text style={styles.cancellationTitle}>Lý do hủy đơn hàng</Text>
+          </View>
+          <View style={styles.cancellationContent}>
+            <Text style={styles.cancellationReason}>{order.cancellationReason}</Text>
+          </View>
+        </View>
+      )}
 
       <View style={styles.orderActions}>
         {renderOrderActions(order)}
@@ -713,5 +730,38 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '500',
+  },
+  cancellationSection: {
+    backgroundColor: '#fff2f0',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#ff4d4f',
+  },
+  cancellationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 6,
+  },
+  cancellationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ff4d4f',
+  },
+  cancellationContent: {
+    gap: 4,
+  },
+  cancellationReason: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+    fontStyle: 'italic',
+  },
+  cancellationDate: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
   },
 });

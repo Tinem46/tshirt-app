@@ -209,11 +209,18 @@ export interface IOrderItem {
   productName: string;
   customDesignName?: string;
   variantName?: string;
+  imageUrl?: string; 
 }
 
 export interface IReviewCreate {
   productVariantId: string;
   orderId: string;
+  rating: number;
+  content: string;
+  images: string[];
+}
+
+export interface IReviewUpdate {
   rating: number;
   content: string;
   images: string[];
