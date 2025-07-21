@@ -129,44 +129,92 @@ const SearchScreen = () => {
                   flex: 1,
                   margin: 8,
                   backgroundColor: "#fff",
-                  borderRadius: 10,
-                  padding: 10,
-                  alignItems: "center",
+                  borderRadius: 12,
+                  padding: 12,
+                  alignItems: "flex-start",
                   shadowColor: "#000",
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.06,
                   shadowRadius: 3,
                   elevation: 2,
+                  minWidth: 160,
+                  maxWidth: "48%",
                 }}
               >
+                {/* Ảnh sản phẩm */}
                 <Image
                   source={{
-                    uri:
-                      item.image ||
-                      "https://via.placeholder.com/100x100.png?text=No+Image",
+                    uri: item.image || "https://via.placeholder.com/100x100.png?text=No+Image",
                   }}
                   style={{
                     height: 100,
-                    width: 100,
-                    borderRadius: 8,
+                    width: "100%",
+                    borderRadius: 10,
                     marginBottom: 8,
                     backgroundColor: "#f4f4f4",
                   }}
                   resizeMode="cover"
                 />
+
+                {/* Màu sắc */}
+                <View style={{ flexDirection: "row", marginBottom: 6 }}>
+                  {(item.colors || []).map((color: string, idx: number) => (
+                    <View
+                      key={color + idx}
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 8,
+                        backgroundColor: color,
+                        marginRight: 6,
+                        borderWidth: 1,
+                        borderColor: "#ccc",
+                      }}
+                    />
+                  ))}
+                </View>
+
+                {/* Size */}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 6 }}>
+                  {(item.sizes || []).map((size: string, idx: number) => (
+                    <View
+                      key={size + idx}
+                      style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 2,
+                        borderRadius: 6,
+                        backgroundColor: "#f5f5f5",
+                        marginRight: 6,
+                        marginBottom: 4,
+                        borderWidth: 1,
+                        borderColor: "#eee",
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: "#444" }}>{size}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Tên sản phẩm */}
                 <Text
                   numberOfLines={2}
                   style={{
-                    fontWeight: "500",
-                    fontSize: 14,
-                    textAlign: "center",
+                    fontWeight: "600",
+                    fontSize: 15,
+                    marginBottom: 2,
+                    color: "#222",
                   }}
                 >
                   {item.name}
                 </Text>
-                <Text
-                  style={{ color: "#e53935", marginTop: 4, fontWeight: "bold" }}
-                >
+
+                {/* Nhãn New */}
+                <Text style={{ color: "#e53935", fontWeight: "bold", fontSize: 13, marginBottom: 2 }}>
+                  New
+                </Text>
+
+                {/* Giá sản phẩm */}
+                <Text style={{ color: "#e53935", fontWeight: "bold", fontSize: 17 }}>
                   {Number(item.price).toLocaleString()} VND
                 </Text>
               </Pressable>

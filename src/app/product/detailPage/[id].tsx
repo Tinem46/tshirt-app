@@ -27,6 +27,16 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import CustomHeader from "@/components/header/header";
+function getContrastTextColor(bgColor) {
+  const color = bgColor.charAt(0) === "#" ? bgColor.substring(1) : bgColor;
+  const r = parseInt(color.substring(0,2),16);
+  const g = parseInt(color.substring(2,4),16);
+  const b = parseInt(color.substring(4,6),16);
+  const luminance = (0.299*r + 0.587*g + 0.114*b)/255;
+  return luminance > 0.6 ? "#222" : "#fff";
+}
+
 
 const { width } = Dimensions.get("window");
 const fallbackImg = "https://dosi-in.com/images/detailed/42/CDL10_1.jpg";
@@ -287,8 +297,9 @@ const handleBuyNow = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-      <ScrollView style={styles.container}>
-        <TouchableOpacity onPress={() => setModalVisible(true)}>
+        <CustomHeader />
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingTop: 60 }}>
+        <TouchableOpacity onPress={() => setModalVisible(true)} >
           <Image
             source={{
               uri: product.images?.[selectedIndex] || fallbackImg,
@@ -401,13 +412,10 @@ const handleBuyNow = () => {
                       style={[
                         styles.colorText,
                         selectedColor === color && styles.colorTextActive,
-                        {
-                          color:
-                            selectedColor === color ||
-                            getColorHex(color) === "#222"
-                              ? "#fff"
-                              : "#222",
-                        },
+                          {
+                          color: getContrastTextColor(getColorHex(color)),
+                          }
+
                       ]}
                     >
                       {getColorName(color)}
