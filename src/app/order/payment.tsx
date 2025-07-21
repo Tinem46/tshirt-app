@@ -1,8 +1,8 @@
 import { getShippingMethodsAPI, placeOrderAPI } from "@/app/utils/apiall";
 import { api } from "@/config/api";
-
 import { useCurrentApp } from "@/context/app.context";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -58,23 +58,11 @@ const PaymentPage = () => {
     fetchShipping();
   }, []);
 
-  // enrich lại cart (nếu dữ liệu từ nhiều nguồn)
-  const enrichCartItems = (cart: any) => {
-    return cart.map((item: any) => {
-      const detail = item.detail || {};
-      return {
-        ...item,
-        productId: item.productId ?? detail.productId ?? null,
-        name: item.name ?? detail.productName ?? "",
-        image: item.image ?? detail.imageUrl ?? "",
-        productVariantId: item.productVariantId ?? detail.id ?? null,
-        productVariantName: item.productVariantName ?? detail.variantSku ?? "",
-        selectedColor: item.selectedColor ?? detail.color ?? "",
-        selectedSize: item.selectedSize ?? detail.size ?? "",
-        unitPrice: item.unitPrice ?? detail.price ?? 0,
-        quantity: item.quantity,
-      };
-    });
+  const getUserId = async () => {
+    const userId = await AsyncStorage.getItem("userId");
+    // userId là string hoặc null
+    console.log("userId lấy từ AsyncStorage:", userId);
+    return userId;
   };
 
   // ===== APPLY COUPON =====
@@ -84,14 +72,27 @@ const PaymentPage = () => {
       setDiscountAmount(0);
       return;
     }
+
     setLoading(true);
     try {
-      const res = await api.post("Coupons/apply", {
+      const userId = await getUserId(); // <- PHẢI await để lấy giá trị
+      console.log("userId lấy từ AsyncStorage:", userId);
+
+      const payload: any = {
         code: coupon.code,
         orderAmount: cartSummary?.totalAmount || 0,
-        userId: appState?.user?.id || null,
-      });
-      const data = res.data?.data;
+        userId: userId, // <-- Bây giờ mới là string, không phải Promise
+      };
+
+      if (!userId) {
+        console.error("userId is null, cannot apply coupon");
+      }
+
+      console.log("Payload gửi lên Coupons/apply:", payload);
+
+      const res = await api.post("Coupons/apply", payload);
+      const data = res.data;
+      console.log("hello",data)
       if (!data?.isValid) {
         setSelectedCoupon(null);
         setDiscountAmount(0);
@@ -112,9 +113,11 @@ const PaymentPage = () => {
         err?.response?.data?.message ||
           "Không áp dụng được mã giảm giá. Vui lòng thử lại!"
       );
+      console.error("Error applying coupon:", err?.response?.data, err);
     }
     setLoading(false);
   };
+
   // ==== Tính lại phí, tổng tiền
   const shippingFee =
     shippingMethods.find((x: any) => x.id === shippingMethodId)?.fee ??
