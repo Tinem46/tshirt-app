@@ -14,11 +14,9 @@ import {
   View,
 } from "react-native";
 import Toast from "react-native-root-toast";
-import { UpdateUserSchema } from "../utils/validate.schema";
-
-import { getUserInfoAPI } from "../utils/apiall";
+import { getUserInfoAPI, updateUserAPI } from "../utils/apiall";
 import { APP_COLOR } from "../utils/constant";
-
+import { UpdateUserSchema } from "../utils/validate.schema";
 // Giới tính
 const GENDERS = [
   { value: "male", label: "Nam" },
@@ -70,11 +68,10 @@ const ProfilePage = () => {
   const initialValues = {
     firstName: user?.firstName || "", // an toàn
     lastName: user?.lastName || "",
-    phoneNumber: user?.phoneNumber || "",
     gender:
       typeof user?.gender === "number"
         ? ["male", "female", "other"][user.gender] || "other"
-        : user?.gender || "",
+        : (user?.gender || "").toLowerCase(),
   };
 
   // Update user
@@ -82,8 +79,9 @@ const ProfilePage = () => {
     setLoading(true);
     try {
       // Nếu backend yêu cầu gender là số (0/1/2)
+      const { phoneNumber, ...rest } = values;
       const payload = {
-        ...values,
+        ...rest,
         gender:
           values.gender === "male" ? 0 : values.gender === "female" ? 1 : 2,
       };
@@ -150,76 +148,77 @@ const ProfilePage = () => {
             isValid,
             dirty,
             setFieldValue,
-          }) => (
-            <View style={styles.form}>
-              {/* First Name */}
-              <Text style={styles.label}>Tên</Text>
-              <TextInputField
-                value={values.firstName}
-                onChangeText={handleChange("firstName")}
-                onBlur={handleBlur("firstName")}
-                error={touched.firstName && errors.firstName}
-                placeholder="Nhập tên..."
-              />
+          }) => {
+            console.log('Formik values:', values);
+            return (
+              <View style={styles.form}>
+                {/* First Name */}
+                <Text style={styles.label}>Tên</Text>
+                <TextInputField
+                  value={values.firstName}
+                  onChangeText={handleChange("firstName")}
+                  onBlur={handleBlur("firstName")}
+                  error={touched.firstName && errors.firstName}
+                  placeholder="Nhập tên..."
+                />
 
-              {/* Last Name */}
-              <Text style={styles.label}>Họ</Text>
-              <TextInputField
-                value={values.lastName}
-                onChangeText={handleChange("lastName")}
-                onBlur={handleBlur("lastName")}
-                error={touched.lastName && errors.lastName}
-                placeholder="Nhập họ..."
-              />
+                {/* Last Name */}
+                <Text style={styles.label}>Họ</Text>
+                <TextInputField
+                  value={values.lastName}
+                  onChangeText={handleChange("lastName")}
+                  onBlur={handleBlur("lastName")}
+                  error={touched.lastName && errors.lastName}
+                  placeholder="Nhập họ..."
+                />
 
-              {/* Phone */}
-
-              {/* Gender */}
-              <Text style={styles.label}>Giới tính</Text>
-              <View style={styles.genderRow}>
-                {GENDERS.map((g) => (
-                  <TouchableOpacity
-                    key={g.value}
-                    style={[
-                      styles.genderBtn,
-                      values.gender === g.value && styles.genderBtnActive,
-                    ]}
-                    onPress={() => setFieldValue("gender", g.value)}
-                  >
-                    <Text
+                {/* Gender */}
+                <Text style={styles.label}>Giới tính</Text>
+                <View style={styles.genderRow}>
+                  {GENDERS.map((g) => (
+                    <TouchableOpacity
+                      key={g.value}
                       style={[
-                        styles.genderText,
-                        values.gender === g.value && styles.genderTextActive,
+                        styles.genderBtn,
+                        values.gender === g.value && styles.genderBtnActive,
                       ]}
+                      onPress={() => setFieldValue("gender", g.value)}
                     >
-                      {g.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          styles.genderText,
+                          values.gender === g.value && styles.genderTextActive,
+                        ]}
+                      >
+                        {g.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {touched.gender && errors.gender && (
+                  <Text style={styles.error}>{errors.gender}</Text>
+                )}
+
+                {/* Email (read only) */}
+                <Text style={styles.label}>Email</Text>
+                <TextInputField value={user?.email || ""} editable={false} />
+
+                {/* Save Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.saveBtn,
+                    !(isValid && dirty) && { opacity: 0.6 },
+                  ]}
+                  onPress={handleSubmit as any}
+                  disabled={loading || !(isValid && dirty)}
+                >
+                  <Text style={styles.saveBtnText}>
+                    {loading ? "Đang lưu..." : "Lưu"}
+                  </Text>
+                </TouchableOpacity>
               </View>
-              {touched.gender && errors.gender && (
-                <Text style={styles.error}>{errors.gender}</Text>
-              )}
-
-              {/* Email (read only) */}
-              <Text style={styles.label}>Email</Text>
-              <TextInputField value={user?.email || ""} editable={false} />
-
-              {/* Save Button */}
-              <TouchableOpacity
-                style={[
-                  styles.saveBtn,
-                  !(isValid && dirty) && { opacity: 0.6 },
-                ]}
-                onPress={handleSubmit as any}
-                disabled={loading || !(isValid && dirty)}
-              >
-                <Text style={styles.saveBtnText}>
-                  {loading ? "Đang lưu..." : "Lưu"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            );
+          }}
         </Formik>
       </ScrollView>
     </KeyboardAvoidingView>

@@ -1,5 +1,7 @@
 import ShareButton from "@/components/button/share.button";
 import ShareInput from "@/components/input/share.input";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
 import { Formik, FormikProps } from "formik";
 import { useRef, useState } from "react";
 import {
@@ -23,22 +25,27 @@ const ChangePassword = () => {
     newPassword: string,
     confirmPassword: string
   ) => {
+    setLoading(true);
+    // Log payload gửi lên API
+    console.log({ oldPassword, newPassword, confirmPassword });
     const res = await updatePasswordAPI(
       oldPassword,
       newPassword,
       confirmPassword
     );
+    setLoading(false);
     if (res.data) {
-      setLoading(false);
-      Toast.show("Cập nhật mật khẩu thành công", {
+      Toast.show("Cập nhật mật khẩu thành công. Đăng xuất...", {
         duration: Toast.durations.LONG,
         textColor: "white",
         backgroundColor: APP_COLOR.ORANGE,
         opacity: 1,
       });
       formikRef.current?.resetForm();
+      // Đăng xuất: xóa token và chuyển về login
+      await AsyncStorage.removeItem("access_token");
+      router.replace("/(auth)/login");
     } else {
-      setLoading(false);
       Toast.show("Cập nhật thất bại", {
         duration: Toast.durations.LONG,
         textColor: "white",
@@ -68,7 +75,7 @@ const ChangePassword = () => {
             }}
             onSubmit={(values) =>
               handleChange(
-                values?.oldPassword ?? "",
+                values?.currentPassword ?? "",
                 values?.newPassword ?? "",
                 values?.confirmPassword ?? ""
               )

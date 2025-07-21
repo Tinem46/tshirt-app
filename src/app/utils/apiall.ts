@@ -35,16 +35,20 @@ export const resendConfirmationAPI = (email: string) => {
 
 
 export const loginAPI = (Email: string, Password: string) => {
-    return api.post<IBackendRes<ILogin>>("Auth/login", { Email, Password });
+  return api.post<IBackendRes<ILogin>>("Auth/login", { Email, Password });
 };
 // Google
 export const googleLoginAPI = (tokenId: string) => {
-    return api.post<IBackendRes<any>>("Auth/google-login-token", { tokenId });
+  return api.post<IBackendRes<any>>("Auth/google-login-token", { tokenId });
 };
 
 export const getUserInfoAPI = () => {
-    return api.get<IBackendRes<any>>("Auth/current-user");}
+  return api.get<IBackendRes<any>>("Auth/current-user");
+}
 
+export const updateUserAPI = (id: string, data: any) => {
+  return api.put<IBackendRes<any>>(`Auth/profile`, data);
+};
 
 export const fetchProductsAPI = (params: any) => {
   // "Product" là route backend trả về danh sách sản phẩm
@@ -55,19 +59,20 @@ export const fetchCouponAPI = () => {
   return api.get<IBackendRes<any>>("Coupons");
 };
 
-export const updatePasswordAPI = (oldPassword: string, newPassword: string, confirmPassword:string) => {
+export const updatePasswordAPI = (oldPassword: string, newPassword: string, confirmPassword: string) => {
   return api.post<IBackendRes<any>>("Auth/change-password", {
     oldPassword,
     newPassword,
     confirmPassword,
-})};
+  })
+};
 
 export const getProductDetailAPI = (id: string) => api.get<IBackendRes<any>>(`Product/${id}`);
 export const getProductVariantsAPI = (id: string) => api.get<IBackendRes<any>>(`ProductVariant/product/${id}`);
 export const addToCartAPI = (
   data: { productVariantId: string | null; quantity: number }[]
 ) => api.post<IBackendRes<any>>("Cart", data);
-export const updateCartItemAPI =  ({
+export const updateCartItemAPI = ({
   cartItemId,
   quantity,
 }: {
@@ -78,13 +83,13 @@ export const updateCartItemAPI =  ({
 };
 
 // Xóa 1 item khỏi giỏ
-export const removeCartItemAPI =  (cartItemId: string[]) => {
+export const removeCartItemAPI = (cartItemId: string[]) => {
   return api.delete<IBackendRes<any>>("Cart", {
-        data: cartItemId, // mảng các id đã chọn
-        headers: { "Content-Type": "application/json" },
-      });;
+    data: cartItemId, // mảng các id đã chọn
+    headers: { "Content-Type": "application/json" },
+  });;
 };
-export const getCartAPI =  () => {
+export const getCartAPI = () => {
   return api.get<IBackendRes<any>>("Cart"); // URL tùy theo backend bạn
 };
 export const getProductVariantAPI = (variantId: string) =>
@@ -120,52 +125,52 @@ export const fetchDesignHistoryAPI = () =>
   api.get("CustomDesign/filter-user?PageSize=20");
 
 // Tạo mới design
-export const createDesignAPI = (payload:string) =>
+export const createDesignAPI = (payload: string) =>
   api.post("CustomDesign", payload);
 
 // Thay đổi trạng thái
-export const updateDesignStatusAPI = (id:string, status:any) =>
+export const updateDesignStatusAPI = (id: string, status: any) =>
   api.patch(`CustomDesign/${id}/status`, { status });
 
 
 
- export const printAsyncStorage = () => {
-    AsyncStorage.getAllKeys((err, keys) => {
-        AsyncStorage.multiGet(keys!, (error, stores) => {
-            let asyncStorage: any = {}
-            stores?.map((result, i, store) => {
-                asyncStorage[store[i][0]] = store[i][1]
-            });
-            console.log(JSON.stringify(asyncStorage, null, 2));
-        });
+export const printAsyncStorage = () => {
+  AsyncStorage.getAllKeys((err, keys) => {
+    AsyncStorage.multiGet(keys!, (error, stores) => {
+      let asyncStorage: any = {}
+      stores?.map((result, i, store) => {
+        asyncStorage[store[i][0]] = store[i][1]
+      });
+      console.log(JSON.stringify(asyncStorage, null, 2));
     });
+  });
 };
 
-export const backEndURL =() =>{
-    const URL_ANROID_BACKEND = process.env.EXPO_PUBLIC_ANDROID_API_URL;
-    const URL_IOS_BACKEND = process.env.EXPO_PUBLIC_IOS_API_URL;
-    const backend =
+export const backEndURL = () => {
+  const URL_ANROID_BACKEND = process.env.EXPO_PUBLIC_ANDROID_API_URL;
+  const URL_IOS_BACKEND = process.env.EXPO_PUBLIC_IOS_API_URL;
+  const backend =
     Platform.OS === "android" ? URL_ANROID_BACKEND : URL_IOS_BACKEND;
-    return backend;
+  return backend;
 }
 
 
 export const currencyFormatter = (value: any) => {
-    const options = {
-        significantDigits: 2,
-        thousandsSeparator: '.',
-        decimalSeparator: ',',
-        symbol: 'vnđ'
-    }
+  const options = {
+    significantDigits: 2,
+    thousandsSeparator: '.',
+    decimalSeparator: ',',
+    symbol: 'vnđ'
+  }
 
-    if (typeof value !== 'number') value = 0.0
-    value = value.toFixed(options.significantDigits)
+  if (typeof value !== 'number') value = 0.0
+  value = value.toFixed(options.significantDigits)
 
-    const [currency, decimal] = value.split('.')
-    return `${currency.replace(
-        /\B(?=(\d{3})+(?!\d))/g,
-        options.thousandsSeparator
-    )} ${options.symbol}`
+  const [currency, decimal] = value.split('.')
+  return `${currency.replace(
+    /\B(?=(\d{3})+(?!\d))/g,
+    options.thousandsSeparator
+  )} ${options.symbol}`
 }
 
 // mockApi.ts

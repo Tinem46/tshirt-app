@@ -58,9 +58,6 @@ export const UpdateUserSchema = Yup.object().shape({
     .required('Vui lòng nhập tên!'),
   lastName: Yup.string()
     .required('Vui lòng nhập họ!'),
-  phoneNumber: Yup.string()
-    .required('Vui lòng nhập số điện thoại!')
-    .matches(/^[0-9]{10,11}$/, "Số điện thoại không hợp lệ!"),
   gender: Yup.string()
     .oneOf(["male", "female", "other"], "Giới tính không hợp lệ!")
     .required('Vui lòng chọn giới tính!'),
