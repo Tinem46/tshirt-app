@@ -12,6 +12,8 @@ interface AppContextType {
   setProduct: (v: IProduct | null) => void;
   buyNowItem: ICartItem | null;
   setBuyNowItem: (item: ICartItem | null) => void;
+  savedCoupons: any[];
+  setSavedCoupons: (v: any[]) => void;
   checkoutData: {
     userDetails: any;
     cartSummary: any;
@@ -50,6 +52,7 @@ export const AppProvider = (props: Iprops) => {
     cartId: null,
     cart: [],
   });
+  const [savedCoupons, setSavedCoupons] = useState<any[]>([]);
 
   return (
     <AppContext.Provider
@@ -66,6 +69,8 @@ export const AppProvider = (props: Iprops) => {
         setBuyNowItem,
         checkoutData,
         setCheckoutData,
+        savedCoupons,
+        setSavedCoupons,
       }}
     >
       {props.children}

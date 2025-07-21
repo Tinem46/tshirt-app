@@ -41,6 +41,7 @@
     "expo-web-browser": "~14.1.6",
     "formik": "^2.4.6",
     "jwt-decode": "^4.0.0",
+    "lodash.debounce": "^4.0.8",
     "lucide-react-native": "^0.525.0",
     "react": "19.0.0",
     "react-content-loader": "^7.0.2",
@@ -64,6 +65,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/debounce": "^1.2.4",
+    "@types/lodash.debounce": "^4.0.9",
     "@types/react": "~19.0.10",
     "@types/react-native": "^0.72.8",
     "@types/yup": "^0.29.14",

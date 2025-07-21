@@ -1,10 +1,11 @@
+import { api } from "@/config/api";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import debounce from "debounce";
+import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useState } from "react";
+import debounce from "lodash.debounce";
+import React, { useRef, useState } from "react";
 import {
   FlatList,
-  Image,
   Pressable,
   StatusBar,
   Text,
@@ -12,103 +13,45 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { IProduct } from "../types/model";
 import { APP_COLOR } from "../utils/constant";
 
-const defaultData = [
-  {
-    key: 1,
-    name: "Áo thun",
-    source: { uri: "https://dosi-in.com/images/detailed/42/CDL10_1.jpg" },
-  },
-  {
-    key: 2,
-    name: "Áo sơ mi",
-    source: { uri: "https://dosi-in.com/images/detailed/42/CDL10_1.jpg" },
-  },
-  {
-    key: 3,
-    name: "Quần dài",
-    source: { uri: "https://dosi-in.com/images/detailed/42/CDL10_1.jpg" },
-  },
-  {
-    key: 4,
-    name: "Đầm váy",
-    source: { uri: "https://dosi-in.com/images/detailed/42/CDL10_1.jpg" },
-  },
-  {
-    key: 5,
-    name: "Áo khoác",
-    source: { uri: "https://dosi-in.com/images/detailed/42/CDL10_1.jpg" },
-  },
-  {
-    key: 6,
-    name: "Phụ kiện",
-    source: { uri: "https://dosi-in.com/images/detailed/42/CDL10_1.jpg" },
-  },
-  // Thêm icon khác nếu bạn có
-];
-
-const DefaultResult = () => {
-  return (
-    <View style={{ backgroundColor: "white", padding: 10, gap: 10 }}>
-      <Text style={{ fontWeight: "bold", fontSize: 16, marginBottom: 10 }}>
-        Danh mục phổ biến
-      </Text>
-      <FlatList
-        data={defaultData}
-        numColumns={2}
-        keyExtractor={(item) => item.key.toString()}
-        renderItem={({ item, index }) => (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              flex: 1,
-              borderColor: "#eee",
-              borderWidth: 1,
-              margin: 8,
-              borderRadius: 10,
-              padding: 12,
-              gap: 10,
-              backgroundColor: "#fafafa",
-            }}
-          >
-            <Image
-              source={item.source}
-              style={{ width: 36, height: 36, marginRight: 8 }}
-            />
-            <Text style={{ fontSize: 15 }}>{item.name}</Text>
-          </View>
-        )}
-      />
-    </View>
-  );
-};
+// ...rest import
 
 const SearchScreen = () => {
-  const [products, setProducts] = useState<IProduct[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Gọi API sản phẩm
-  const handleSearch = debounce(async (text: string) => {
-    setSearchTerm(text);
-    if (!text) {
-      setProducts([]);
-      return;
-    }
+  // Hàm search gọi API thực tế
+  const doSearch = async (text: string) => {
     try {
-      const res = await fetch(
-        `https://682f2e5b746f8ca4a4803faf.mockapi.io/product?search=${encodeURIComponent(
-          text
-        )}`
+      const response = await api.get(
+        `Product?Name=${encodeURIComponent(text)}`
       );
-      const data = await res.json();
-      setProducts(data ?? []);
-    } catch (e) {
+      const res = response.data as any;
+      setProducts(res?.data || []);
+    } catch {
       setProducts([]);
     }
-  }, 300);
+  };
+
+  // Dùng useCallback + lodash.debounce, luôn giữ cùng context
+  const debouncedSearch = useRef(
+    debounce((text: string) => {
+      setSearchTerm(text);
+      if (!text.trim()) {
+        setProducts([]);
+        return;
+      }
+      doSearch(text);
+    }, 350)
+  ).current;
+
+  // Cleanup debounce khi unmount (tránh memory leak)
+  React.useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, []);
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -129,7 +72,7 @@ const SearchScreen = () => {
         />
         <TextInput
           placeholder="Tìm kiếm sản phẩm..."
-          onChangeText={(text: string) => handleSearch(text)}
+          onChangeText={debouncedSearch}
           autoFocus={true}
           style={{
             flex: 1,
@@ -140,14 +83,32 @@ const SearchScreen = () => {
           }}
         />
       </View>
-
       <View style={{ backgroundColor: "#eee", flex: 1 }}>
         {searchTerm.length === 0 ? (
-          <DefaultResult />
+          <>
+            <Image
+              source={{
+                uri: "https://ngocthang.net/wp-content/uploads/2020/04/sticker-facebook.gif",
+              }}
+              style={{
+                height: 200,
+                width: 200,
+                borderRadius: 8,
+                marginBottom: 8,
+                alignSelf: "center",
+                marginTop: 150,
+              }}
+            />
+            <Text style={{ textAlign: "center", color: "#888", fontSize: 16 , marginTop: 10 }}>
+              Hãy nhập từ khóa tìm kiếm để xem sản phẩm
+            </Text>
+          </>
         ) : (
           <FlatList
             data={products}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) =>
+              item.id?.toString() || Math.random().toString()
+            }
             numColumns={2}
             ListEmptyComponent={
               <Text

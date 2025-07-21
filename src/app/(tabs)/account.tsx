@@ -1,5 +1,6 @@
 import ShareButton from "@/components/button/share.button";
 import { useCurrentApp } from "@/context/app.context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -67,18 +68,43 @@ const AccountPage = () => {
 
         <Pressable
           onPress={() => router.push("/(user)/address")}
-          style={styles.itemContainer}>
+          style={styles.itemContainer}
+        >
           <View style={styles.item}>
             <Feather name="map-pin" size={20} />
             <Text style={styles.itemText}>Địa chỉ</Text>
           </View>
           <MaterialIcons name="navigate-next" size={24} color="#999" />
         </Pressable>
-        
-        <Pressable onPress={() => router.push("/(user)/orders")} style={styles.itemContainer}>
+
+        <Pressable
+          onPress={() => router.push("/(user)/orders")}
+          style={styles.itemContainer}
+        >
           <View style={styles.item}>
             <Feather name="shopping-bag" size={20} />
             <Text style={styles.itemText}>Đơn mua</Text>
+          </View>
+          <MaterialIcons name="navigate-next" size={24} color="#999" />
+        </Pressable>
+        <Pressable
+          onPress={() => router.push("/(user)/coupon")}
+          style={styles.itemContainer}
+        >
+          <View style={styles.item}>
+            <Feather name="tag" size={20} />
+            <Text style={styles.itemText}>Mã giảm giá</Text>
+          </View>
+          <MaterialIcons name="navigate-next" size={24} color="#999" />
+        </Pressable>
+
+        <Pressable
+          onPress={() => router.push("/(user)/design.history")}
+          style={styles.itemContainer}
+        >
+          <View style={styles.item}>
+            <MaterialCommunityIcons name="star-four-points" size={20} />
+            <Text style={styles.itemText}>AI Design</Text>
           </View>
           <MaterialIcons name="navigate-next" size={24} color="#999" />
         </Pressable>

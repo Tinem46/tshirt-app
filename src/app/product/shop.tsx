@@ -1,34 +1,78 @@
 import LoadingOverlay from "@/components/loading/overlay";
 import ProductListSkeleton from "@/components/skeleton/productListSkeleton";
-import { useCurrentApp } from "@/context/app.context";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FlatList, Image, StyleSheet, Text, View } from "react-native";
 import Card from "../../components/card/card";
 import FilterBar from "../../components/filterBar/filterBar";
-import { IProduct, IProductVariant } from "../types/model";
-import { fetchProductsAPI, getProductVariantsAPI } from "../utils/apiall";
+import { IProductVariant } from "../types/model";
+import {
+  fetchCategoriesAPI,
+  fetchProductsAPI,
+  getProductVariantsAPI,
+} from "../utils/apiall";
 
 const itemsPerPage = 8;
 const defaultFilters = {
-  price: null,
-  type: null,
-  size: null,
-  color: null,
+  price: undefined,
+  type: undefined, // CategoryId
+  size: undefined,
+  color: undefined,
   order: "",
+  season: undefined,
 };
 
 const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
-  // const { product, setProduct } = useCurrentApp();
-  const [products, setProducts] = useState<IProduct[]>([]);
-  const [filters, setFilters] = useState(defaultFilters);
-  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState({ ...defaultFilters });
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    []
+  );
+  const [productsWithVariant, setProductsWithVariant] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [productsWithVariant, setProductsWithVariant] = useState<any[]>([]);
+  const didSetDefaultType = useRef(false);
 
-  // Xây dựng params gửi lên API dựa trên filter và search (giống web)
+  // Fetch categories & set default type (id) if productType
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await fetchCategoriesAPI();
+        const arr = Array.isArray(res?.data?.data) ? res.data.data : [];
+        setCategories(arr);
+
+        // Set filter.type theo tên truyền vào (vd: T-Shirt)
+        if (productType && !didSetDefaultType.current) {
+          const found = arr.find(
+            (c) =>
+              c.name.trim().toLowerCase() === productType.trim().toLowerCase()
+          );
+          if (found) {
+            setFilters((prev) => ({ ...prev, type: found.id }));
+            didSetDefaultType.current = true;
+          }
+        }
+      } catch {
+        setCategories([]);
+      }
+    };
+    loadCategories();
+    // Reset didSetDefaultType mỗi khi đổi productType
+    return () => {
+      didSetDefaultType.current = false;
+    };
+  }, [productType]);
+
+  // Khi đổi filter/search, fetch lại trang 1
+  useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+    fetchProducts(true);
+    // eslint-disable-next-line
+  }, [filters, searchKeyword]);
+
+  // Build params cho API
   const buildParams = () => {
     let params: any = {
       PageNumber: page,
@@ -37,12 +81,10 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
     };
     if (searchKeyword && searchKeyword.trim())
       params.Name = searchKeyword.trim();
-    if (productType) params.CategoryId = productType;
     if (filters.type) params.CategoryId = filters.type;
     if (filters.size) params.Size = filters.size;
-    if (filters.color) params.Color = filters.color;
+    if (filters.season) params.Season = filters.season;
 
-    // Lọc giá
     if (filters.price) {
       switch (filters.price) {
         case "Giá dưới 100.000đ":
@@ -70,6 +112,7 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
     return params;
   };
 
+  // Fetch products (lọc theo filters.type, chính là id category)
   const fetchProducts = async (reset = false) => {
     try {
       if (reset) setLoading(true);
@@ -86,7 +129,7 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
           try {
             const res = await getProductVariantsAPI(p.id);
             const variants = res.data || [];
-            return { ...p, variants }; // truyền mảng
+            return { ...p, variants };
           } catch (e) {
             return { ...p, variants: [] };
           }
@@ -94,7 +137,6 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
       );
 
       if (reset) {
-        setProducts(withVariant);
         setProductsWithVariant(withVariant);
         setPage(2);
       } else {
@@ -112,21 +154,10 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
     }
   };
 
-  // Khi filter/search/productType đổi, fetch lại trang 1
-  useEffect(() => {
-    setPage(1);
-    setHasMore(true);
-    fetchProducts(true);
-  }, [filters, productType, searchKeyword]);
-
-  // Load thêm
   const loadMore = () => {
-    if (!loadingMore && hasMore) {
-      fetchProducts(false);
-    }
+    if (!loadingMore && hasMore) fetchProducts(false);
   };
 
-  // Khi đổi filter bar
   const handleFilterChange = (key: string, value: string | null) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPage(1);
@@ -137,9 +168,13 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
 
   return (
     <View style={styles.wrapper}>
-      <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+      <FilterBar
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        categories={categories}
+      />
       <Text style={styles.productCount}>{total} sản phẩm</Text>
-      {products.length === 0 ? (
+      {productsWithVariant.length === 0 ? (
         <View style={styles.emptySearch}>
           <Image
             source={{
@@ -159,7 +194,14 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
           renderItem={({ item }) => (
             <Card shirt={item} variants={item.variants} />
           )}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[
+            styles.list,
+            productsWithVariant.length < 4 && {
+              flex: 1,
+              alignItems: "center",
+              marginBottom: 680,
+            },
+          ]}
           numColumns={2}
           onEndReached={loadMore}
           onEndReachedThreshold={0.2}
@@ -171,9 +213,9 @@ const ProductLayout = ({ productType = "", searchKeyword = "" }) => {
 };
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, paddingTop: 90, backgroundColor: "#fff" },
+  wrapper: { paddingTop: 90, backgroundColor: "#fff", flex: 1 },
   productCount: { fontSize: 15, color: "#444", margin: 14 },
-  emptySearch: { flex: 1, alignItems: "center", marginBottom: 650 },
+  emptySearch: { flex: 1, alignItems: "center", marginBottom: 700 },
   emptyText: { fontSize: 18, color: "#888", marginTop: 10 },
   list: { paddingBottom: 20 },
 });

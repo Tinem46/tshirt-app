@@ -13,7 +13,7 @@ export const cancelOrderAPI = (orderId: string) => {
 }
 
 export const confirmDeliveredAPI = (orderId: string) => {
-    return api.post<IBackendRes<any>>("Orders/batch/confirm-delivered", [orderId], {
+    return api.put<IBackendRes<any>>("Orders/batch/confirm-delivered", [orderId], {
         headers: { "Content-Type": "application/json" },
     });
 }

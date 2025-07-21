@@ -1,9 +1,10 @@
+import { Feather } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+
 import React from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import Icon from "react-native-vector-icons/Feather";
 
-// Chú ý: Các option đầu là ""
+// Các option cố định cho các filter khác ngoài loại áo
 const filterOptions = {
   price: [
     "",
@@ -13,14 +14,24 @@ const filterOptions = {
     "300.000đ - 500.000đ",
     "Giá trên 500.000đ",
   ],
-  type: ["", "Áo thun", "Áo sơ mi", "Áo khoác", "Áo hoodie"],
   size: ["", "S", "M", "L", "XL"],
-  color: ["", "Đen", "Trắng", "Xanh", "Đỏ", "Vàng"],
+season: [
+  { label: "", value: "" },
+  { label: "Xuân", value: "Spring" },
+  { label: "Hè", value: "Summer" },
+  { label: "Thu", value: "Autumn" },
+  { label: "Đông", value: "Winter" },
+  { label: "Tất cả mùa", value: "AllSeason" },
+],
+
   order: ["", "Giá tăng dần", "Giá giảm dần"],
 };
 
-// Label mặc định của mỗi filter pill
-const getLabel = (type, value) => {
+const getLabel = (
+  type: string,
+  value: string,
+  categories?: { id: string; name: string }[]
+) => {
   if (!value || value === "") {
     switch (type) {
       case "price":
@@ -37,7 +48,10 @@ const getLabel = (type, value) => {
         return "";
     }
   }
-  // Riêng order
+  if (type === "type" && categories) {
+    const found = categories.find((c) => c.id === value);
+    return found ? found.name : "Loại áo";
+  }
   if (type === "order") {
     if (value === "asc") return "Giá tăng dần";
     if (value === "desc") return "Giá giảm dần";
@@ -45,14 +59,24 @@ const getLabel = (type, value) => {
   return value;
 };
 
-// Giá trị thực tế của order
-const getOrderValue = (label) => {
-  if (label === "Giá tăng dần") return "asc";
-  if (label === "Giá giảm dần") return "desc";
-  return "";
+type FilterBarProps = {
+  filters: {
+    price?: string;
+    size?: string;
+    color?: string;
+    type?: string;
+    order?: string;
+    [key: string]: any;
+  };
+  onFilterChange: (key: string, value: string) => void;
+  categories?: { id: string; name: string }[];
 };
 
-const FilterBar = ({ filters, onFilterChange }) => {
+const FilterBar: React.FC<FilterBarProps> = ({
+  filters,
+  onFilterChange,
+  categories = [],
+}) => {
   return (
     <ScrollView
       style={styles.filterBar}
@@ -60,16 +84,16 @@ const FilterBar = ({ filters, onFilterChange }) => {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ alignItems: "center" }}
     >
-      {/* Mức giá */}
+      {/* Giá */}
       <View style={styles.pill}>
-        <Icon name="filter" style={styles.pillIconLeft} />
+        <Feather name="filter" style={styles.pillFeatherLeft} />
         <Text
           style={[
             styles.pillText,
             filters.price && filters.price !== "" && styles.pillTextSelected,
           ]}
         >
-          {getLabel("price", filters.price)}
+          {getLabel("price", filters.price || "")}
         </Text>
         <Picker
           selectedValue={filters.price || ""}
@@ -84,62 +108,36 @@ const FilterBar = ({ filters, onFilterChange }) => {
             />
           ))}
         </Picker>
-        <Icon name="chevron-down" style={styles.pillIconRight} />
+        <Feather name="chevron-down" style={styles.pillFeatherRight} />
       </View>
 
-      {/* Kích cỡ */}
       <View style={styles.pill}>
         <Text
           style={[
             styles.pillText,
-            filters.size && filters.size !== "" && styles.pillTextSelected,
+            filters.season && filters.season !== "" && styles.pillTextSelected,
           ]}
         >
-          {getLabel("size", filters.size)}
+          {filterOptions.season.find((s) => s.value === (filters.season || ""))
+            ?.label || "Mùa"}
         </Text>
         <Picker
-          selectedValue={filters.size || ""}
+          selectedValue={filters.season || ""}
           style={styles.picker}
-          onValueChange={(value) => onFilterChange("size", value)}
+          onValueChange={(value) => onFilterChange("season", value)}
         >
-          {filterOptions.size.map((option) => (
+          {filterOptions.season.map((option) => (
             <Picker.Item
-              key={option || "all"}
-              label={option === "" ? "Kích cỡ" : option}
-              value={option}
+              key={option.value}
+              label={option.label === "" ? "Mùa" : option.label}
+              value={option.value}
             />
           ))}
         </Picker>
-        <Icon name="chevron-down" style={styles.pillIconRight} />
+        <Feather name="chevron-down" style={styles.pillFeatherRight} />
       </View>
 
-      {/* Màu sắc */}
-      <View style={styles.pill}>
-        <Text
-          style={[
-            styles.pillText,
-            filters.color && filters.color !== "" && styles.pillTextSelected,
-          ]}
-        >
-          {getLabel("color", filters.color)}
-        </Text>
-        <Picker
-          selectedValue={filters.color || ""}
-          style={styles.picker}
-          onValueChange={(value) => onFilterChange("color", value)}
-        >
-          {filterOptions.color.map((option) => (
-            <Picker.Item
-              key={option || "all"}
-              label={option === "" ? "Màu sắc" : option}
-              value={option}
-            />
-          ))}
-        </Picker>
-        <Icon name="chevron-down" style={styles.pillIconRight} />
-      </View>
-
-      {/* Loại áo */}
+      {/* Loại áo (dynamic từ API) */}
       <View style={styles.pill}>
         <Text
           style={[
@@ -147,34 +145,31 @@ const FilterBar = ({ filters, onFilterChange }) => {
             filters.type && filters.type !== "" && styles.pillTextSelected,
           ]}
         >
-          {getLabel("type", filters.type)}
+          {getLabel("type", filters.type || "", categories)}
         </Text>
         <Picker
           selectedValue={filters.type || ""}
           style={styles.picker}
           onValueChange={(value) => onFilterChange("type", value)}
         >
-          {filterOptions.type.map((option) => (
-            <Picker.Item
-              key={option || "all"}
-              label={option === "" ? "Loại áo" : option}
-              value={option}
-            />
+          <Picker.Item label="Loại áo" value="" />
+          {(Array.isArray(categories) ? categories : []).map((cat) => (
+            <Picker.Item key={cat.id} label={cat.name} value={cat.id} />
           ))}
         </Picker>
-        <Icon name="chevron-down" style={styles.pillIconRight} />
+        <Feather name="chevron-down" style={styles.pillFeatherRight} />
       </View>
 
       {/* Sắp xếp */}
       <View style={styles.pill}>
-        <Icon name="arrow-down" style={styles.pillIconLeft} />
+        <Feather name="arrow-down" style={styles.pillFeatherLeft} />
         <Text
           style={[
             styles.pillText,
             filters.order && filters.order !== "" && styles.pillTextSelected,
           ]}
         >
-          {getLabel("order", filters.order)}
+          {getLabel("order", filters.order || "")}
         </Text>
         <Picker
           selectedValue={filters.order || ""}
@@ -185,7 +180,7 @@ const FilterBar = ({ filters, onFilterChange }) => {
           <Picker.Item label="Giá tăng dần" value="asc" />
           <Picker.Item label="Giá giảm dần" value="desc" />
         </Picker>
-        <Icon name="chevron-down" style={styles.pillIconRight} />
+        <Feather name="chevron-down" style={styles.pillFeatherRight} />
       </View>
     </ScrollView>
   );
@@ -230,12 +225,12 @@ const styles = StyleSheet.create({
     color: "#222",
     fontWeight: "bold",
   },
-  pillIconLeft: {
+  pillFeatherLeft: {
     fontSize: 16,
     color: "#222",
     marginRight: 5,
   },
-  pillIconRight: {
+  pillFeatherRight: {
     fontSize: 18,
     color: "#222",
     marginLeft: 2,

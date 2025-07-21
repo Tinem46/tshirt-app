@@ -3,6 +3,8 @@ import { api } from "@/config/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
+//AI
+
 // Đổi lại cho đồng bộ với backend mới:
 export const registerApi = (
   email: string,
@@ -48,6 +50,10 @@ export const fetchProductsAPI = (params: any) => {
   // "Product" là route backend trả về danh sách sản phẩm
   return api.get<IBackendRes<any>>("Product", { params });
 };
+export const fetchCouponAPI = () => {
+  // "Coupon" là route backend trả về danh sách mã giảm giá
+  return api.get<IBackendRes<any>>("Coupons");
+};
 
 export const updatePasswordAPI = (oldPassword: string, newPassword: string, confirmPassword:string) => {
   return api.post<IBackendRes<any>>("Auth/change-password", {
@@ -83,6 +89,8 @@ export const getCartAPI =  () => {
 };
 export const getProductVariantAPI = (variantId: string) =>
   api.get<IBackendRes<any>>(`ProductVariant/${variantId}`);
+export const fetchCategoriesAPI = () =>
+  api.get<IBackendRes<any>>(`Category`);
 export const calculateCartTotalAPI = (cartItemIds: string[]) => {
   return api.post<IBackendRes<any>>("Cart/calculate-total", cartItemIds, {
     headers: { "Content-Type": "application/json" },
@@ -102,6 +110,23 @@ export const placeOrderAPI = (payload: any) => {
 export const getOrderDetailAPI = (orderId: string) => {
   return api.get(`Orders/${orderId}`);
 };
+
+// Lấy design mới nhất
+export const fetchNewestDesignAPI = () =>
+  api.get("CustomDesign/filter-user?PageSize=1&SortBy=CreatedAt&SortDescending=true");
+
+// Lấy lịch sử
+export const fetchDesignHistoryAPI = () =>
+  api.get("CustomDesign/filter-user?PageSize=20");
+
+// Tạo mới design
+export const createDesignAPI = (payload:string) =>
+  api.post("CustomDesign", payload);
+
+// Thay đổi trạng thái
+export const updateDesignStatusAPI = (id:string, status:any) =>
+  api.patch(`CustomDesign/${id}/status`, { status });
+
 
 
  export const printAsyncStorage = () => {

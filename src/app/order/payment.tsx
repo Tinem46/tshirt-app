@@ -1,4 +1,6 @@
 import { getShippingMethodsAPI, placeOrderAPI } from "@/app/utils/apiall";
+import { api } from "@/config/api";
+
 import { useCurrentApp } from "@/context/app.context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -16,13 +18,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const PaymentPage = () => {
-  const { checkoutData, selectedCoupon, userCoupons, setSelectedCoupon } =
-    useCurrentApp();
-  const {
-    cart = [],
-    userDetails = {},
-    cartSummary = {},
-  } = checkoutData || {};
+  const { checkoutData, savedCoupons, appState } = useCurrentApp();
+  const { cart = [], userDetails = {}, cartSummary = {} } = checkoutData || {};
 
   type ShippingMethod = {
     id: number | string;
@@ -31,10 +28,37 @@ const PaymentPage = () => {
     fee: number;
   };
 
+  // Coupon state
+  const [selectedCoupon, setSelectedCoupon] = useState<any>(null);
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+
+  // Shipping
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [shippingMethodId, setShippingMethodId] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Đồng bộ lại coupon nếu cart thay đổi (reset mã)
+  useEffect(() => {
+    setSelectedCoupon(null);
+    setDiscountAmount(0);
+  }, [cartSummary?.totalAmount, cart]);
+
+  // Lấy phương thức giao hàng
+  useEffect(() => {
+    const fetchShipping = async () => {
+      setLoading(true);
+      try {
+        const res = await getShippingMethodsAPI();
+        setShippingMethods(res?.data?.data || res?.data || []);
+      } catch {
+        Alert.alert("Không thể tải phương thức vận chuyển");
+      }
+      setLoading(false);
+    };
+    fetchShipping();
+  }, []);
+
+  // enrich lại cart (nếu dữ liệu từ nhiều nguồn)
   const enrichCartItems = (cart: any) => {
     return cart.map((item: any) => {
       const detail = item.detail || {};
@@ -53,25 +77,45 @@ const PaymentPage = () => {
     });
   };
 
-  // Lấy phương thức giao hàng
-  useEffect(() => {
-    const fetchShipping = async () => {
-      setLoading(true);
-      try {
-        const res = await getShippingMethodsAPI();
-        setShippingMethods(res?.data?.data || res?.data || []);
-      } catch {
-        Alert.alert("Không thể tải phương thức vận chuyển");
+  // ===== APPLY COUPON =====
+  const handleApplyCoupon = async (coupon: any) => {
+    if (!coupon) {
+      setSelectedCoupon(null);
+      setDiscountAmount(0);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await api.post("Coupons/apply", {
+        code: coupon.code,
+        orderAmount: cartSummary?.totalAmount || 0,
+        userId: appState?.user?.id || null,
+      });
+      const data = res.data?.data;
+      if (!data?.isValid) {
+        setSelectedCoupon(null);
+        setDiscountAmount(0);
+        Alert.alert(
+          "Mã giảm giá không hợp lệ!",
+          data?.message || "Không đủ điều kiện áp dụng."
+        );
+        return;
       }
-      setLoading(false);
-    };
-    fetchShipping();
-  }, []);
-  useEffect(() => {
-    console.log("Cart123:", cart);
-  }, [cart]);
-
-  // Tính lại phí và tổng tiền
+      setSelectedCoupon(coupon);
+      setDiscountAmount(data.discountAmount);
+      Alert.alert("Áp dụng mã thành công!");
+    } catch (err) {
+      setSelectedCoupon(null);
+      setDiscountAmount(0);
+      Alert.alert(
+        "Lỗi",
+        err?.response?.data?.message ||
+          "Không áp dụng được mã giảm giá. Vui lòng thử lại!"
+      );
+    }
+    setLoading(false);
+  };
+  // ==== Tính lại phí, tổng tiền
   const shippingFee =
     shippingMethods.find((x: any) => x.id === shippingMethodId)?.fee ??
     cartSummary?.estimatedShipping ??
@@ -79,59 +123,37 @@ const PaymentPage = () => {
   const estimatedTotal =
     (cartSummary?.totalAmount || 0) +
     shippingFee -
-    (cartSummary?.estimatedShipping || 0);
+    (cartSummary?.estimatedShipping || 0) -
+    (discountAmount || 0);
 
-  // Đặt hàng
+  // ===== Đặt hàng
   const handlePlaceOrder = async () => {
     if (!shippingMethodId) {
       Alert.alert("Vui lòng chọn phương thức vận chuyển!");
       return;
     }
     setLoading(true);
-
     try {
-      const enrichedCart = enrichCartItems(cart);
+      // Đảm bảo lấy userAddressId và newAddress từ checkoutData
+      const { userAddressId, newAddress } = checkoutData;
 
       const payload = {
-        userAddressId: null,
-        newAddress: {
-          receiverName: userDetails.fullname,
-          phone: userDetails.phone_number,
-          detailAddress: userDetails.specific_Address,
-          ward: userDetails.ward,
-          district: userDetails.district,
-          province: userDetails.country || "String",
-          postalCode: "",
-          isDefault: false,
-        },
-        customerNotes: userDetails.additionalInfo,
-        couponId: selectedCoupon?.id || null,
-        shippingMethodId,
-
-        orderItems: enrichedCart.map((item: any) => ({
-          cartItemId: item.id,
-          productId: item.productId,
-          customDesignId: item.customDesignId ?? null,
-          productVariantId: item.productVariantId,
-          selectedColor: item.selectedColor,
-          selectedSize: item.selectedSize,
-          // image: item.image,
-          quantity: item.quantity,
-          // unitPrice: item.unitPrice,
+        UserAddressId: userAddressId || null,
+        NewAddress: newAddress || null,
+        CustomerNotes: userDetails?.additionalInfo || "",
+        CouponId: selectedCoupon?.id || null,
+        ShippingMethodId: shippingMethodId,
+        OrderItems: cart.map((item) => ({
+          ...(checkoutData.cartId ? { CartItemId: item.id ?? null } : {}),
+          ProductVariantId: item.productVariantId ?? item.detail?.id ?? null,
+          Quantity: item.quantity,
         })),
-        paymentMethod: 1,
-        paymentDescription: "Thanh toán khi nhận hàng (COD)",
+        PaymentMethod: 0, // Chỉ COD, muốn thêm VNPAY thì custom thêm (xem web)
       };
-
-      console.log("OrderItems gửi đi:", payload.orderItems);
-      console.log("Payload đặt hàng:", JSON.stringify(payload, null, 2));
 
       const res = await placeOrderAPI(payload);
       const orderId = res?.order?.id || res?.orderId || null;
-      console.log("Đặt hàng thành công:", orderId);
 
-      // Nếu muốn show log toàn bộ response:
-      console.log("API Response:", JSON.stringify(res, null, 2));
       Alert.alert("Đặt hàng thành công!", "", [
         {
           text: "OK",
@@ -143,19 +165,11 @@ const PaymentPage = () => {
           },
         },
       ]);
-    } catch (error: any) {
+    } catch (error) {
       Alert.alert("Đặt hàng thất bại!", "Vui lòng thử lại.");
-      // Log toàn bộ error để debug chính xác lỗi gì:
-      console.error("Error placing order:", {
-        message: error.message,
-        response: error.response ? error.response.data : null,
-        status: error.response ? error.response.status : null,
-        headers: error.response ? error.response.headers : null,
-        config: error.config,
-      });
-    } finally {
-      setLoading(false);
+      // Log thêm nếu debug
     }
+    setLoading(false);
   };
 
   // ==== UI ====
@@ -199,10 +213,7 @@ const PaymentPage = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Phương thức thanh toán</Text>
           <TouchableOpacity
-            style={[
-              styles.optionRow,
-              true && styles.selectedOption, // luôn chọn
-            ]}
+            style={[styles.optionRow, styles.selectedOption]}
             activeOpacity={1}
           >
             <Text style={{ fontWeight: "500" }}>
@@ -216,24 +227,36 @@ const PaymentPage = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mã giảm giá</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {(userCoupons || []).map((c: any) => (
+            {(savedCoupons || []).map((c: any) => (
               <TouchableOpacity
                 key={c.id}
                 style={[
                   styles.couponTag,
                   selectedCoupon?.id === c.id && styles.selectedCoupon,
                 ]}
-                onPress={() => setSelectedCoupon(c)}
+                onPress={() => handleApplyCoupon(c)}
               >
                 <Text
                   style={{
                     color: selectedCoupon?.id === c.id ? "#fff" : "#222",
+                    fontWeight: selectedCoupon?.id === c.id ? "bold" : "500",
                   }}
                 >
                   {c.code} - {c.name}
                 </Text>
               </TouchableOpacity>
             ))}
+            {selectedCoupon && (
+              <TouchableOpacity
+                style={[
+                  styles.couponTag,
+                  { backgroundColor: "#f43f5e", borderColor: "#f43f5e" },
+                ]}
+                onPress={() => handleApplyCoupon(null)}
+              >
+                <Text style={{ color: "#fff" }}>Bỏ mã</Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </View>
 
@@ -270,6 +293,16 @@ const PaymentPage = () => {
               {shippingFee.toLocaleString()} VND
             </Text>
           </View>
+          {discountAmount > 0 && (
+            <View style={styles.totalsRow}>
+              <Text style={[styles.totalsLabel, { color: "#10b981" }]}>
+                Giảm giá
+              </Text>
+              <Text style={[styles.totalsValue, { color: "#10b981" }]}>
+                -{discountAmount.toLocaleString()} VND
+              </Text>
+            </View>
+          )}
           <View style={[styles.totalsRow, { marginTop: 7 }]}>
             <Text style={styles.totalsLabelBold}>Total</Text>
             <Text style={styles.totalsValueBold}>
@@ -294,7 +327,7 @@ const PaymentPage = () => {
 
 export default PaymentPage;
 
-// ==== STYLE (giữ nguyên) ====
+// ==== STYLE giữ nguyên như trước ====
 const styles = StyleSheet.create({
   root: { flex: 1, padding: 14, backgroundColor: "#e5e2e2" },
   section: {
