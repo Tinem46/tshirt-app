@@ -2,7 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 
 import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native"; // Import TouchableOpacity
 
 // Các option cố định cho các filter khác ngoài loại áo
 const filterOptions = {
@@ -15,16 +15,15 @@ const filterOptions = {
     "Giá trên 500.000đ",
   ],
   size: ["", "S", "M", "L", "XL"],
-season: [
-  { label: "", value: "" },
-  { label: "Xuân", value: "Spring" },
-  { label: "Hè", value: "Summer" },
-  { label: "Thu", value: "Autumn" },
-  { label: "Đông", value: "Winter" },
-  { label: "Tất cả mùa", value: "AllSeason" },
-],
-
-  order: ["", "Giá tăng dần", "Giá giảm dần"],
+  season: [
+    { label: "", value: "" },
+    { label: "Xuân", value: "Spring" },
+    { label: "Hè", value: "Summer" },
+    { label: "Thu", value: "Autumn" },
+    { label: "Đông", value: "Winter" },
+    { label: "Tất cả mùa", value: "AllSeason" },
+  ],
+  // 'order' options are handled directly in the Picker for clarity
 };
 
 const getLabel = (
@@ -44,6 +43,8 @@ const getLabel = (
         return "Loại áo";
       case "order":
         return "Sắp xếp theo";
+      case "season": // Added season label
+        return "Mùa";
       default:
         return "";
     }
@@ -56,6 +57,11 @@ const getLabel = (
     if (value === "asc") return "Giá tăng dần";
     if (value === "desc") return "Giá giảm dần";
   }
+  // For season, find the label from filterOptions.season
+  if (type === "season") {
+    const found = filterOptions.season.find((s) => s.value === value);
+    return found ? found.label : "Mùa";
+  }
   return value;
 };
 
@@ -66,17 +72,25 @@ type FilterBarProps = {
     color?: string;
     type?: string;
     order?: string;
+    season?: string; // Added season to filters type
     [key: string]: any;
   };
   onFilterChange: (key: string, value: string) => void;
+  onClearFilters: () => void; // New prop for clearing filters
   categories?: { id: string; name: string }[];
 };
 
 const FilterBar: React.FC<FilterBarProps> = ({
   filters,
   onFilterChange,
+  onClearFilters, // Destructure new prop
   categories = [],
 }) => {
+  // Check if any filter is active to show/hide the clear button
+  const isAnyFilterActive = Object.values(filters).some(
+    (value) => value !== undefined && value !== ""
+  );
+
   return (
     <ScrollView
       style={styles.filterBar}
@@ -102,7 +116,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
         >
           {filterOptions.price.map((option, idx) => (
             <Picker.Item
-              key={option || "all"}
+              key={option || `price-all-${idx}`}
               label={option === "" ? "Mức giá" : option}
               value={option}
             />
@@ -111,6 +125,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
         <Feather name="chevron-down" style={styles.pillFeatherRight} />
       </View>
 
+      {/* Mùa */}
       <View style={styles.pill}>
         <Text
           style={[
@@ -118,8 +133,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
             filters.season && filters.season !== "" && styles.pillTextSelected,
           ]}
         >
-          {filterOptions.season.find((s) => s.value === (filters.season || ""))
-            ?.label || "Mùa"}
+          {getLabel("season", filters.season || "")}
         </Text>
         <Picker
           selectedValue={filters.season || ""}
@@ -182,6 +196,14 @@ const FilterBar: React.FC<FilterBarProps> = ({
         </Picker>
         <Feather name="chevron-down" style={styles.pillFeatherRight} />
       </View>
+
+      {/* Nút Xóa bộ lọc */}
+      {isAnyFilterActive && ( // Only show if any filter is active
+        <TouchableOpacity onPress={onClearFilters} style={styles.clearButton}>
+          <Feather name="x-circle" style={styles.clearButtonIcon} />
+          <Text style={styles.clearButtonText}>Xóa bộ lọc</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 };
@@ -243,6 +265,33 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     zIndex: 10,
+  },
+  clearButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f0f0", // Light gray background
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    marginRight: 8,
+    height: 38,
+    elevation: 2,
+    shadowColor: "#222",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+  },
+  clearButtonIcon: {
+    fontSize: 16,
+    color: "#888",
+    marginRight: 5,
+  },
+  clearButtonText: {
+    fontSize: 15,
+    color: "#888",
+    fontWeight: "500",
   },
 });
 
