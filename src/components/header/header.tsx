@@ -1,4 +1,4 @@
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
@@ -56,6 +56,12 @@ const CustomHeader = () => {
           onPress={() => router.push("/product/cart")}
         >
           <Feather name="shopping-cart" size={24} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => router.push("/AI/customDesign")}
+        >
+          <MaterialCommunityIcons  name="star-four-points" size={24}  />
         </TouchableOpacity>
       </View>
     </View>

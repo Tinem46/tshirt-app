@@ -7,40 +7,40 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import GestureRecognizer from "react-native-swipe-gestures";
 
 const categoryData = [
   {
-    label: "TOP",
+    label: "T-SHIRT",
     backgroundImage:
       "https://product.hstatic.net/200000678739/product/25a_90fbab0f674241439ee3647598ea675b_large.jpg",
     productTitle: "Top Basic",
-    desc: "Chất vải mềm mại, thoáng mát, trẻ trung cho nữ.",
-    price: "210.000 VND",
-    id: "shirt",
+    desc: "Chất vải mềm mại, thoáng mát, trẻ trung.",
+    price: "180.000-210.000 VND",
+    id: "t-shirt",
   },
   {
-    label: "OUTTERWEAR",
+    label: "HOODIE",
     backgroundImage:
       "https://bizweb.dktcdn.net/100/287/440/files/cac-local-brand-da-nang-dep.jpg?v=1619602174052",
-    productTitle: "Áo Thun Nam Năng Động",
+    productTitle: "Hoodie trẻ Năng Động",
     desc: "Kiểu dáng trẻ trung, năng động, phù hợp nhiều dịp.",
-    price: "220.000 VND",
+    price: "220.000-400.000 VND",
     subDesc: "Có đủ size M-XXL.",
-    id: "pant",
+    id: "hoodie",
   },
   {
-    label: "BOTTOM",
+    label: "POLO",
     backgroundImage:
-      "https://media.coolmate.me/cdn-cgi/image/quality=80/uploads/June2022/quan_ao_tre_em_7.jpg",
-    productTitle: "Áo Parka Chống UV Bỏ Túi Line",
-    desc: "Thiết kế nhỏ gọn với chất liệu bảo vệ bạn khỏi tia UV, chống mưa nhẹ.*",
-    price: "588.000 VND",
+      "https://tse2.mm.bing.net/th/id/OIP.PeruZAvth4y1dOh0ZhlvEAHaLH?rs=1&pid=ImgDetMain&o=7&rm=3",
+    productTitle: "Polo Cổ Điển",
+    desc: "Chất liệu cotton cao cấp, thoáng mát.",
+    price: "180.000-240.000 VND",
     subDesc:
       "*Vải được phủ một lớp chống thấm nước nhẹ. Lớp chống thấm chỉ có tác dụng trong một khoảng thời gian nhất định.",
-    id: "pant",
+    id: "polo",
   },
 ];
 
@@ -110,9 +110,29 @@ const ShopHomeScreen = () => {
             {/* Product Info */}
             <View style={styles.contentContainer}>
               <View style={styles.contentBox}>
-                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-                  <MaterialIcons name="wb-sunny" size={20} color="#111" style={{ marginRight: 4 }} />
-                  <Text style={{ fontWeight: "bold", fontSize: 13, letterSpacing: 1, color: "#111" }}>UV PROTECTION</Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 6,
+                  }}
+                >
+                  <MaterialIcons
+                    name="wb-sunny"
+                    size={20}
+                    color="#111"
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text
+                    style={{
+                      fontWeight: "bold",
+                      fontSize: 13,
+                      letterSpacing: 1,
+                      color: "#111",
+                    }}
+                  >
+                    UV PROTECTION
+                  </Text>
                 </View>
                 <Text style={styles.productTitle}>{cat.productTitle}</Text>
                 <Text style={styles.desc}>{cat.desc}</Text>
@@ -129,7 +149,11 @@ const ShopHomeScreen = () => {
                     }
                     activeOpacity={0.7}
                   >
-                    <MaterialIcons name="shopping-cart" size={22} color="#fff" />
+                    <MaterialIcons
+                      name="shopping-cart"
+                      size={22}
+                      color="#fff"
+                    />
                     <Text style={styles.buyBtnText}>Xem sản phẩm</Text>
                   </TouchableOpacity>
                 </View>
@@ -167,13 +191,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     letterSpacing: 1,
   },
-  categoryActive: {
-    textDecorationLine: "underline",
-    textDecorationStyle: "solid",
-    textDecorationColor: "#fff",
-  },
+
   underline: {
-    width: 30,
+    width: 50,
     height: 2,
     backgroundColor: "#fff",
     marginTop: 2,
@@ -219,7 +239,7 @@ const styles = StyleSheet.create({
     borderColor: "#111",
     shadowColor: "#111",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.10,
+    shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 2,
   },
@@ -243,7 +263,7 @@ const styles = StyleSheet.create({
     padding: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.10,
+    shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 4,
     width: "100%",

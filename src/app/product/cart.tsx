@@ -286,7 +286,7 @@ const CartPage = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#FFF" },
+  safeArea: { flex: 1, backgroundColor: "#FFF", paddingTop: 20 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
   title: { fontSize: 22, fontWeight: "bold", marginLeft: 12, color: "#212529" },
   // *** BƯỚC 5: THÊM STYLE CHO THANH TÌM KIẾM ***

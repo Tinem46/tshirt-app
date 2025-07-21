@@ -40,7 +40,7 @@ const ProfilePage = () => {
         const res = await getUserInfoAPI();
         // res.data: { ...user }
         setUser(res.data);
-        setAppState((prev) => ({
+        setAppState((prev: any) => ({
           ...prev,
           user: res.data,
         }));
@@ -94,7 +94,7 @@ const ProfilePage = () => {
         textColor: "#fff",
       });
       setUser((u: any) => ({ ...u, ...values, gender: payload.gender }));
-      setAppState((prev) => ({
+      setAppState((prev: any) => ({
         ...prev,
         user: { ...prev.user, ...values, gender: payload.gender },
       }));
@@ -173,15 +173,6 @@ const ProfilePage = () => {
               />
 
               {/* Phone */}
-              <Text style={styles.label}>Số điện thoại</Text>
-              <TextInputField
-                value={values.phoneNumber}
-                onChangeText={handleChange("phoneNumber")}
-                onBlur={handleBlur("phoneNumber")}
-                error={touched.phoneNumber && errors.phoneNumber}
-                keyboardType="phone-pad"
-                placeholder="Nhập số điện thoại..."
-              />
 
               {/* Gender */}
               <Text style={styles.label}>Giới tính</Text>
@@ -254,7 +245,7 @@ function TextInputField(props: any) {
 
 // ---- STYLE ----
 const styles = StyleSheet.create({
-  header: { alignItems: "center", marginTop: 45, marginBottom: 24 },
+  header: { alignItems: "center", marginTop: 100, marginBottom: 24 },
   avatar: {
     width: 96,
     height: 96,
@@ -293,7 +284,7 @@ const styles = StyleSheet.create({
   genderText: { color: "#111" },
   genderTextActive: { color: "#fff", fontWeight: "bold" },
   saveBtn: {
-    marginTop: 18,
+    marginTop: 30,
     backgroundColor: "#111",
     borderRadius: 8,
     paddingVertical: 13,

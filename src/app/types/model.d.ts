@@ -6,6 +6,10 @@ declare global {
         message: string;
         statusCode : number|string;
         data?: T;
+        results?: T[];
+        totalCount?: number;
+        messages?: string[];
+        items?: any;
     }
 }
 
@@ -48,39 +52,53 @@ export interface IProduct {
 
     liked: boolean,
 }
+export interface  IProductVariant{
+    id: string;
+    productId: string;
+    name: string;
+    price: number;
+    size: number;
+    color: number;
+    imageUrl: string;
+    quantity: number;
+    variantSku: string;
+    priceAdjustment: number;
+    isActive: boolean;
+    productName: string;
+}
 
 export interface ICartItem {
-  product: IProduct;
-  quantity: number;
-  size: string; // Added size property
-  unitPrice: number; // Added unit price property
+  id?: string;                    // ID cart item (key để render, gọi API)
+  productId?: string;             // Mã sản phẩm (bắt buộc khi gọi order)
+  productVariantId?: string;      // Mã variant (size, color)
+  name?: string;                  // Tên sản phẩm
+  image?: string;                 // Ảnh sp
+  unitPrice: number;              // Giá từng item
+  quantity: number;               // Số lượng
+
+  selectedColor?: string;         // Màu đã chọn
+  selectedSize?: string;          // Size đã chọn
+  size?: string;                  // Có thể có, nhưng selectedSize dùng chuẩn hơn
+  color?: string;                 // Có thể có, nhưng selectedColor dùng chuẩn hơn
+
+  detail?: any;                   // Dữ liệu phụ, có thể là ProductVariant
+  product?: IProduct;             // Đối tượng sản phẩm nếu cần dùng lại (tùy bạn)
+  [key: string]: any;             // Đảm bảo không lỗi key khác
 }
 
 
-export interface IMenu {
-    _id: string;
-    restaurant: string;
-    title: string;
-    createdAt: Date;
-    updatedAt: Date;
-    menuItem: IMenuItem[]
+export interface ICoupon {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  type: number; // 0 = phần trăm, 1 = số tiền, hoặc enum nếu có
+  value: number;
+  minOrderAmount?: number;
+  startDate?: string | Date | null;
+  endDate?: string | Date | null;
 }
 
-export interface IMenuItem {
-    _id: string;
-    menu: string;
-    title: string;
-    description: string;
-    basePrice: number,
-    image: string;
-    options: {
-        title: string;
-        description: string;
-        additionalPrice: number;
-    }[],
-    createdAt: Date;
-    updatedAt: Date;
-}
 
 export interface ICart {
     [key: string]: {

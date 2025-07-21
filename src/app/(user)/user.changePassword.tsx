@@ -2,7 +2,13 @@ import ShareButton from "@/components/button/share.button";
 import ShareInput from "@/components/input/share.input";
 import { Formik, FormikProps } from "formik";
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import Toast from "react-native-root-toast";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { updatePasswordAPI } from "../utils/apiall";
@@ -33,7 +39,7 @@ const ChangePassword = () => {
       formikRef.current?.resetForm();
     } else {
       setLoading(false);
-      Toast.show(res.message, {
+      Toast.show("Cập nhật thất bại", {
         duration: Toast.durations.LONG,
         textColor: "white",
         backgroundColor: "red",

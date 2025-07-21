@@ -1,16 +1,17 @@
 import { IProduct, IProductVariant } from "@/app/types/model";
-import { getReviewsByVariantId } from "@/app/utils/reviewService";
 import {
   addToCartAPI,
   getProductDetailAPI,
   getProductVariantsAPI,
 } from "@/app/utils/apiall";
+import { getReviewsByVariantId } from "@/app/utils/reviewService";
 import {
   COLOR_HEX,
   COLOR_LABELS,
   SIZE_LABELS,
 } from "@/components/Enums/enumMaps";
 import SkeletonDetailProduct from "@/components/skeleton/detailSkeleton";
+import { useCurrentApp } from "@/context/app.context";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -26,7 +27,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { APP_COLOR } from "../../utils/constant";
 
 const { width } = Dimensions.get("window");
 const fallbackImg = "https://dosi-in.com/images/detailed/42/CDL10_1.jpg";
@@ -59,7 +59,7 @@ function buildOrderItem(
     productId: variant.productId || product.id || "",
     productVariantId: variant.id,
     itemName: variant.productName || product.name || "",
-    image: variant.imageUrl || product.images?.[selectedIndex] || fallbackImg,
+    image: variant.imageUrl || product.image?.[selectedIndex] || fallbackImg,
     selectedColor: variant.color,
     selectedSize: variant.size,
     unitPrice:
@@ -78,18 +78,18 @@ const DetailPage = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
+  const { setCheckoutData } = useCurrentApp();
 
   useEffect(() => {
-  if (variants.length > 0 && variants[0].id) {
-    getReviewsByVariantId(variants[0].id)
-      .then((res) => {
-        const items = res?.data?.data?.items || [];
-        setReviews(items);
-      })
-      .catch(() => setReviews([]));
-  }
-}, [variants]);
-
+    if (variants.length > 0 && variants[0].id) {
+      getReviewsByVariantId(variants[0].id)
+        .then((res) => {
+          const items = res?.data?.data?.items || [];
+          setReviews(items);
+        })
+        .catch(() => setReviews([]));
+    }
+  }, [variants]);
 
   // Fetch product & variants
   useEffect(() => {
@@ -126,11 +126,11 @@ const DetailPage = () => {
 
   // Lấy size/màu
   // Thứ tự size đúng: XXXL -> XS
-const sizeOrder = [0, 1, 2, 3, 4, 5, 6];
+  const sizeOrder = [0, 1, 2, 3, 4, 5, 6];
 
-const uniqueSizes = sizeOrder.filter((s) =>
-  variants.some((v) => v.size === s)
-);
+  const uniqueSizes = sizeOrder.filter((s) =>
+    variants.some((v) => v.size === s)
+  );
 
   const uniqueColors = [...new Set(variants.map((v) => v.color))];
   const filteredColors = selectedSize
@@ -140,12 +140,11 @@ const uniqueSizes = sizeOrder.filter((s) =>
         ),
       ]
     : uniqueColors;
- const filteredSizes = selectedColor
-  ? sizeOrder.filter((s) =>
-      variants.some((v) => v.color === selectedColor && v.size === s)
-    )
-  : uniqueSizes;
-
+  const filteredSizes = selectedColor
+    ? sizeOrder.filter((s) =>
+        variants.some((v) => v.color === selectedColor && v.size === s)
+      )
+    : uniqueSizes;
 
   // Thumbnail scroll
   const scrollRef = useRef<ScrollView>(null);
@@ -219,35 +218,64 @@ const uniqueSizes = sizeOrder.filter((s) =>
   };
 
   // Buy now (giống web)
-  const handleBuyNow = () => {
-    if (filteredSizes.length > 0 && !selectedSize) {
-      Alert.alert("Vui lòng chọn kích thước!");
-      return;
-    }
-    if (
-      filteredColors.length > 0 &&
-      (selectedColor === null || selectedColor === undefined)
-    ) {
-      Alert.alert("Vui lòng chọn màu sắc!");
-      return;
-    }
-    if (!product?.id) {
-      Alert.alert("Không xác định được sản phẩm để mua");
-      return;
-    }
-    let matched = variants.find(
+
+
+const handleBuyNow = () => {
+  if (filteredSizes.length > 0 && !selectedSize) {
+    Alert.alert("Vui lòng chọn kích thước!");
+    return;
+  }
+  if (
+    filteredColors.length > 0 &&
+    (selectedColor === null || selectedColor === undefined)
+  ) {
+    Alert.alert("Vui lòng chọn màu sắc!");
+    return;
+  }
+  if (!product?.id) {
+    Alert.alert("Không xác định được sản phẩm để mua");
+    return;
+  }
+
+  // Tìm đúng variant
+  let matched = null;
+  if (variants.length > 0) {
+    matched = variants.find(
       (v) => v.size === selectedSize && v.color === selectedColor
     );
     if (!matched) {
       Alert.alert("Không tìm thấy biến thể phù hợp!");
       return;
     }
-    const checkoutItem = buildOrderItem(product, matched, selectedIndex);
-    router.push({
-      pathname: "/order/checkout",
-      params: { items: JSON.stringify([checkoutItem]) },
-    });
+  }
+
+  // Chuẩn hóa 1 item giống web
+  const checkoutItem = {
+    id: matched.id, // Bạn cần id để CheckoutPage dùng .map
+    productVariantId: matched.id,
+    name: product.name,
+    image: product.images?.[selectedIndex] || "",
+    size: selectedSize,
+    color: selectedColor,
+    quantity: 1,
+    unitPrice: matched.price ?? product.price,
+    detail: {
+      imageUrl: matched.imageUrl || product.images?.[selectedIndex] || "",
+      productName: matched.productName || product.name,
+    }
   };
+
+  // Reset lại context Checkout (không giữ cart cũ)
+  setCheckoutData({
+    cart: [checkoutItem], // 1 item, như web
+    cartId: null,
+    // Có thể thêm các field khác nếu cần
+  });
+
+  // Sang trang checkout
+  router.push("/order/checkout");
+};
+
 
   if (loading) return <SkeletonDetailProduct />;
   if (!product)
@@ -392,80 +420,97 @@ const uniqueSizes = sizeOrder.filter((s) =>
 
           {/* Nút hành động */}
           <View style={styles.buttonRow}>
-           <TouchableOpacity style={styles.cartButton} onPress={handleAddToCart}>
-  <Ionicons name="cart-outline" size={18} color="#1e88e5" />
-  <Text style={[styles.buttonText, styles.cartButtonText]}>Thêm Vào Giỏ</Text>
-</TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cartButton}
+              onPress={handleAddToCart}
+            >
+              <Ionicons name="cart-outline" size={18} color="#1e88e5" />
+              <Text style={[styles.buttonText, styles.cartButtonText]}>
+                Thêm Vào Giỏ
+              </Text>
+            </TouchableOpacity>
 
-<TouchableOpacity style={styles.buyButton} onPress={handleBuyNow}>
-  <Ionicons name="flash" size={18} color="#fff" />
-  <Text style={[styles.buttonText, styles.buyButtonText]}>Mua Ngay</Text>
-</TouchableOpacity>
-
+            <TouchableOpacity style={styles.buyButton} onPress={handleBuyNow}>
+              <Ionicons name="flash" size={18} color="#fff" />
+              <Text style={[styles.buttonText, styles.buyButtonText]}>
+                Mua Ngay
+              </Text>
+            </TouchableOpacity>
           </View>
           {/* Chi tiết sản phẩm */}
           <View style={styles.detailBox}>
             <Text style={styles.sectionTitle}>Chi tiết sản phẩm:</Text>
             <Text style={styles.detailText}>
-  <Ionicons name="resize" size={14} color="#666" /> Kích thước:{" "}
-  {uniqueSizes.length > 0 ? uniqueSizes.map(getSizeName).join(" - ") : "Không có"}
-</Text>
+              <Ionicons name="resize" size={14} color="#666" /> Kích thước:{" "}
+              {uniqueSizes.length > 0
+                ? uniqueSizes.map(getSizeName).join(" - ")
+                : "Không có"}
+            </Text>
 
-<Text style={styles.detailText}>
-  <Ionicons name="color-palette-outline" size={14} color="#666" /> Màu:{" "}
-  {uniqueColors.length > 0 ? uniqueColors.map(getColorName).join(" - ") : "Không có"}
-</Text>
+            <Text style={styles.detailText}>
+              <Ionicons name="color-palette-outline" size={14} color="#666" />{" "}
+              Màu:{" "}
+              {uniqueColors.length > 0
+                ? uniqueColors.map(getColorName).join(" - ")
+                : "Không có"}
+            </Text>
 
-<Text style={styles.detailText}>
-  <Ionicons name="pricetag-outline" size={14} color="#666" /> SKU: {product.sku || "Không có"}
-</Text>
+            <Text style={styles.detailText}>
+              <Ionicons name="pricetag-outline" size={14} color="#666" /> SKU:{" "}
+              {product.sku || "Không có"}
+            </Text>
 
-<Text style={styles.detailText}>
-  <Ionicons name="document-text-outline" size={14} color="#666" /> Mô tả:{" "}
-  {product.description || "Không có"}
-</Text>
+            <Text style={styles.detailText}>
+              <Ionicons name="document-text-outline" size={14} color="#666" />{" "}
+              Mô tả: {product.description || "Không có"}
+            </Text>
           </View>
           <View style={styles.reviewBox}>
-  <Text style={styles.sectionTitle}>Đánh giá từ người mua:</Text>
-  {reviews.length === 0 ? (
-    <Text style={styles.detailText}>Chưa có đánh giá nào.</Text>
-  ) : (
-    reviews.map((review, idx) => {
-      const images =
-        typeof review.images === "string"
-          ? JSON.parse(review.images)
-          : Array.isArray(review.images)
-          ? review.images
-          : [];
+            <Text style={styles.sectionTitle}>Đánh giá từ người mua:</Text>
+            {reviews.length === 0 ? (
+              <Text style={styles.detailText}>Chưa có đánh giá nào.</Text>
+            ) : (
+              reviews.map((review, idx) => {
+                const images =
+                  typeof review.images === "string"
+                    ? JSON.parse(review.images)
+                    : Array.isArray(review.images)
+                    ? review.images
+                    : [];
 
-      return (
-        <View key={`review_${idx}`} style={styles.reviewItem}>
-          <Text style={styles.reviewUser}>{review.user?.fullName || "Người dùng"}</Text>
-          <Text style={styles.reviewDate}>
-            {new Date(review.createdAt).toLocaleDateString("vi-VN")}
-          </Text>
-          <Text style={styles.reviewRating}>⭐ {review.rating} sao</Text>
-          <Text style={styles.reviewContent}>{review.content}</Text>
+                return (
+                  <View key={`review_${idx}`} style={styles.reviewItem}>
+                    <Text style={styles.reviewUser}>
+                      {review.user?.fullName || "Người dùng"}
+                    </Text>
+                    <Text style={styles.reviewDate}>
+                      {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+                    </Text>
+                    <Text style={styles.reviewRating}>
+                      ⭐ {review.rating} sao
+                    </Text>
+                    <Text style={styles.reviewContent}>{review.content}</Text>
 
-          {images.length > 0 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
-              {images.map((img: string, i: number) => (
-                <Image
-                  key={`r_img_${i}`}
-                  source={{ uri: img }}
-                  style={styles.reviewImage}
-                />
-              ))}
-            </ScrollView>
-          )}
-        </View>
-      );
-    })
-  )}
-</View>
-
-        
-          
+                    {images.length > 0 && (
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={{ marginTop: 8 }}
+                      >
+                        {images.map((img: string, i: number) => (
+                          <Image
+                            key={`r_img_${i}`}
+                            source={{ uri: img }}
+                            style={styles.reviewImage}
+                          />
+                        ))}
+                      </ScrollView>
+                    )}
+                  </View>
+                );
+              })
+            )}
+          </View>
         </View>
         {/* Modal ảnh lớn */}
         <Modal visible={modalVisible} transparent={true}>
@@ -492,7 +537,12 @@ const uniqueSizes = sizeOrder.filter((s) =>
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  mainImage: { width: "100%", height: width, backgroundColor: "#f2f2f2", borderRadius: 12 },
+  mainImage: {
+    width: "100%",
+    height: width,
+    backgroundColor: "#f2f2f2",
+    borderRadius: 12,
+  },
   thumbnailSection: {
     flexDirection: "row",
     alignItems: "center",
@@ -570,78 +620,78 @@ const styles = StyleSheet.create({
   colorText: { fontSize: 14, color: "#333" },
   colorTextActive: { fontWeight: "600" },
   buttonRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  marginVertical: 24,
-  gap: 12,
-},
-cartButton: {
-  flex: 1,
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "#ffffff",
-  borderWidth: 1.5,
-  borderColor: "#1e88e5", // blue
-  paddingVertical: 14,
-  borderRadius: 12,
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.08,
-  shadowRadius: 3,
-  elevation: 2,
-},
-buyButton: {
-  flex: 1,
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  backgroundColor: "#ff6d00",  // orange
-  paddingVertical: 14,
-  borderRadius: 12,
-  elevation: 3,
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 3 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-},
-buttonText: {
-  fontSize: 16,
-  fontWeight: "700",
-  marginLeft: 6,
-},
-cartButtonText: {
-  color: "#1e88e5",
-},
-buyButtonText: {
-  color: "#fff",
-},
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 24,
+    gap: 12,
+  },
+  cartButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffffff",
+    borderWidth: 1.5,
+    borderColor: "#1e88e5", // blue
+    paddingVertical: 14,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  buyButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ff6d00", // orange
+    paddingVertical: 14,
+    borderRadius: 12,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginLeft: 6,
+  },
+  cartButtonText: {
+    color: "#1e88e5",
+  },
+  buyButtonText: {
+    color: "#fff",
+  },
   detailBox: {
-  marginTop: 20,
-  backgroundColor: "#fff",
-  padding: 16,
-  borderRadius: 16,
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.06,
-  shadowRadius: 6,
-  elevation: 3,
-  marginHorizontal: 16,
-},
+    marginTop: 20,
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+    marginHorizontal: 16,
+  },
 
-detailTitle: {
-  fontSize: 16,
-  fontWeight: "700",
-  color: "#333",
-  marginBottom: 10,
-},
+  detailTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 10,
+  },
 
-detailText: {
-  fontSize: 14,
-  color: "#444",
-  lineHeight: 20,
-  marginBottom: 4,
-},
+  detailText: {
+    fontSize: 14,
+    color: "#444",
+    lineHeight: 20,
+    marginBottom: 4,
+  },
 
   modalContainer: {
     flex: 1,
@@ -652,51 +702,48 @@ detailText: {
   fullImage: { width: "100%", height: "80%" },
   closeIcon: { position: "absolute", top: 40, right: 20 },
   reviewBox: {
-  marginTop: 20,
-  backgroundColor: "#fdfdfd",
-  padding: 16,
-  borderRadius: 12,
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.05,
-  shadowRadius: 2,
-  elevation: 1,
-},
-reviewItem: {
-  marginBottom: 16,
-  borderBottomWidth: 1,
-  borderBottomColor: "#eee",
-  paddingBottom: 12,
-},
-reviewUser: {
-  fontWeight: "600",
-  fontSize: 14,
-  color: "#222",
-},
-reviewDate: {
-  fontSize: 12,
-  color: "#888",
-  marginBottom: 4,
-},
-reviewRating: {
-  fontSize: 14,
-  color: "#f39c12",
-  marginBottom: 4,
-},
-reviewContent: {
-  fontSize: 14,
-  color: "#444",
-},
-reviewImage: {
-  width: 80,
-  height: 80,
-  borderRadius: 8,
-  marginRight: 10,
-  backgroundColor: "#f0f0f0",
-},
-
+    marginTop: 20,
+    backgroundColor: "#fdfdfd",
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  reviewItem: {
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    paddingBottom: 12,
+  },
+  reviewUser: {
+    fontWeight: "600",
+    fontSize: 14,
+    color: "#222",
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 4,
+  },
+  reviewRating: {
+    fontSize: 14,
+    color: "#f39c12",
+    marginBottom: 4,
+  },
+  reviewContent: {
+    fontSize: 14,
+    color: "#444",
+  },
+  reviewImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 10,
+    backgroundColor: "#f0f0f0",
+  },
 });
-
-
 
 export default DetailPage;
