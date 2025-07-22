@@ -32,15 +32,19 @@ const { width } = Dimensions.get("window");
 const TAB_LIST = [
   { key: "all", label: "Tất cả", status: -1 },
   { key: "draft", label: "Nháp", status: CustomDesignStatus.Draft },
-  { key: "liked", label: "Yêu thích", status: CustomDesignStatus.Liked },
-  { key: "accepted", label: "Đã duyệt", status: CustomDesignStatus.Accepted },
+  // { key: "liked", label: "Yêu thích", status: CustomDesignStatus.Liked },
+  { key: "request", label: "Đơn hàng", status: CustomDesignStatus.Request },
   { key: "order", label: "Đã đặt hàng", status: CustomDesignStatus.Order },
   {
     key: "shipping",
     label: "Đang giao hàng",
     status: CustomDesignStatus.Shipping,
   },
-  { key: "delivered", label: "Đã giao", status: CustomDesignStatus.Delivered },
+  {
+    key: "delivered",
+    label: "Đã giao hàng",
+    status: CustomDesignStatus.Delivered,
+  },
   { key: "done", label: "Hoàn thành", status: CustomDesignStatus.Done },
   { key: "rejected", label: "Từ chối", status: CustomDesignStatus.Rejected },
 ];
@@ -133,20 +137,7 @@ const DesignHistoryScreen: React.FC = () => {
         <Text style={styles.designName} numberOfLines={2}>
           {item.designName}
         </Text>
-        <TouchableOpacity
-          style={styles.likeBtn}
-          onPress={() => handleToggleLike(item)}
-          activeOpacity={0.7}
-        >
-          <Feather
-            name={item.status === CustomDesignStatus.Liked ? "heart" : "heart"}
-            size={20}
-            color={
-              item.status === CustomDesignStatus.Liked ? "#FF6B6B" : "#fff"
-            }
-            fill={item.status === CustomDesignStatus.Liked ? "#FF6B6B" : "none"}
-          />
-        </TouchableOpacity>
+       
         <View style={styles.infoContainer}>
           <View style={styles.infoRow}>
             <MaterialCommunityIcons
@@ -233,6 +224,29 @@ const DesignHistoryScreen: React.FC = () => {
               </LinearGradient>
             </DesignStatusButton>
           )}
+
+           {item.status === CustomDesignStatus.Request && (
+          <TouchableOpacity
+            style={styles.toDraftBtn}
+            onPress={async () => {
+              try {
+                await updateDesignStatusAPI(item.id, CustomDesignStatus.Draft);
+                fetchDesigns();
+                Alert.alert("Thành công", "Đã chuyển về trạng thái Nháp.");
+              } catch {
+                Alert.alert("Lỗi", "Không chuyển được về trạng thái Nháp!");
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons
+              name="cancel"
+              size={18}
+              color="#f71010ff"
+            />
+            <Text style={styles.toDraftBtnText}>Hủy order</Text>
+          </TouchableOpacity>
+        )}
         </View>
       </View>
     </View>
@@ -665,5 +679,22 @@ const styles = StyleSheet.create({
   },
   clearSearchBtn: {
     marginLeft: 2,
+  },
+  toDraftBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EEF2FF",
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 20,
+    marginTop: 7,
+    alignSelf: "flex-start",
+  },
+  toDraftBtnText: {
+    color: "#4F46E5",
+    fontWeight: "600",
+    fontSize: 14,
+    marginLeft: 8,
+    letterSpacing: 0.1,
   },
 });

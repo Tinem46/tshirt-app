@@ -149,17 +149,20 @@ const ShirtDesignerScreen: React.FC = () => {
         <Text style={styles.historyDate}>
           {new Date(item.createdAt).toLocaleDateString()}
         </Text>
-        <DesignStatusButton
-          designId={item.id}
-          status={item.status === 1 ? 0 : 1}
-          onSuccess={loadHistoryDesigns}
-          style={styles.statusButton}
-        >
-          <Text style={styles.statusButtonText}>
-            {item.status === 1 ? "Unlike" : "Like"}
-          </Text>
-        </DesignStatusButton>
-        {item.status === 1 && (
+        {[0, 3].includes(item.status) && (
+          <DesignStatusButton
+            designId={item.id}
+            status={item.status === 3 ? 0 : 3}
+            onSuccess={loadHistoryDesigns}
+            style={styles.statusButton}
+          >
+            <Text style={styles.statusButtonText}>
+              {item.status === 3 ? "Unrequest Order" : "Request Order"}
+            </Text>
+          </DesignStatusButton>
+        )}
+
+        {item.status === 3 && (
           <TouchableOpacity
             style={styles.yourDesignBtn}
             // onPress={() => ...} // Có thể thêm action gì đó, ví dụ show popup, navigate, copy...
