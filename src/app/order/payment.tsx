@@ -1,4 +1,4 @@
-import { getShippingMethodsAPI, placeOrderAPI } from "@/app/utils/apiall";
+import { getShippingMethodsAPI, placeOrderAPI, fetchCouponAPI } from "@/app/utils/apiall";
 import { api } from "@/config/api";
 import { useCurrentApp } from "@/context/app.context";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,7 +20,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const PaymentPage = () => {
-  const { checkoutData, savedCoupons, appState } = useCurrentApp();
+  const { checkoutData, appState } = useCurrentApp();
   const { cart = [], userDetails = {}, cartSummary = {} } = checkoutData || {};
 
   type ShippingMethod = {
@@ -31,6 +33,12 @@ const PaymentPage = () => {
   // Coupon state
   const [selectedCoupon, setSelectedCoupon] = useState<any>(null);
   const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(true);
+
+  // Modal
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalCoupon, setModalCoupon] = useState<any>(null);
 
   // Shipping
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
@@ -58,10 +66,25 @@ const PaymentPage = () => {
     fetchShipping();
   }, []);
 
+  // Lấy danh sách coupon (gọi API mỗi lần vào page)
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      setLoadingCoupons(true);
+      try {
+        const res = await fetchCouponAPI();
+        setCoupons(res.data || []);
+      } catch {
+        Alert.alert("Lỗi", "Không thể tải danh sách coupon!");
+        setCoupons([]);
+      }
+      setLoadingCoupons(false);
+    };
+    fetchCoupons();
+  }, []);
+
+  // Lấy userId từ AsyncStorage
   const getUserId = async () => {
     const userId = await AsyncStorage.getItem("userId");
-    // userId là string hoặc null
-    console.log("userId lấy từ AsyncStorage:", userId);
     return userId;
   };
 
@@ -72,27 +95,16 @@ const PaymentPage = () => {
       setDiscountAmount(0);
       return;
     }
-
-    setLoading(true);
+    
     try {
-      const userId = await getUserId(); // <- PHẢI await để lấy giá trị
-      console.log("userId lấy từ AsyncStorage:", userId);
-
+      const userId = await getUserId();
       const payload: any = {
         code: coupon.code,
         orderAmount: cartSummary?.totalAmount || 0,
-        userId: userId, // <-- Bây giờ mới là string, không phải Promise
+        userId: userId,
       };
-
-      if (!userId) {
-        console.error("userId is null, cannot apply coupon");
-      }
-
-      console.log("Payload gửi lên Coupons/apply:", payload);
-
       const res = await api.post("Coupons/apply", payload);
       const data = res.data;
-      console.log("hello",data)
       if (!data?.isValid) {
         setSelectedCoupon(null);
         setDiscountAmount(0);
@@ -115,7 +127,7 @@ const PaymentPage = () => {
       );
       console.error("Error applying coupon:", err?.response?.data, err);
     }
-    setLoading(false);
+    
   };
 
   // ==== Tính lại phí, tổng tiền
@@ -151,7 +163,7 @@ const PaymentPage = () => {
           ProductVariantId: item.productVariantId ?? item.detail?.id ?? null,
           Quantity: item.quantity,
         })),
-        PaymentMethod: 0, // Chỉ COD, muốn thêm VNPAY thì custom thêm (xem web)
+        PaymentMethod: 0, // Chỉ COD
       };
 
       const res = await placeOrderAPI(payload);
@@ -170,12 +182,11 @@ const PaymentPage = () => {
       ]);
     } catch (error) {
       Alert.alert("Đặt hàng thất bại!", "Vui lòng thử lại.");
-      // Log thêm nếu debug
     }
     setLoading(false);
   };
 
-  // ==== UI ====
+  // ==== RENDER ====
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: "#e5e2e2", paddingTop: 30 }}
@@ -229,38 +240,48 @@ const PaymentPage = () => {
         {/* COUPON */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mã giảm giá</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {(savedCoupons || []).map((c: any) => (
-              <TouchableOpacity
-                key={c.id}
-                style={[
-                  styles.couponTag,
-                  selectedCoupon?.id === c.id && styles.selectedCoupon,
-                ]}
-                onPress={() => handleApplyCoupon(c)}
-              >
-                <Text
-                  style={{
-                    color: selectedCoupon?.id === c.id ? "#fff" : "#222",
-                    fontWeight: selectedCoupon?.id === c.id ? "bold" : "500",
+          {loadingCoupons ? (
+            <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12 }}>
+              <ActivityIndicator size="small" color="#6366F1" style={{ marginRight: 8 }} />
+              <Text style={{ color: "#6366F1" }}>Đang tải...</Text>
+            </View>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {(coupons || []).map((c: any) => (
+                <TouchableOpacity
+                  key={c.id}
+                  style={[
+                    styles.couponTag,
+                    selectedCoupon?.id === c.id && styles.selectedCoupon,
+                  ]}
+                  onPress={() => {
+                    setModalCoupon(c);
+                    setModalVisible(true);
                   }}
                 >
-                  {c.code} - {c.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            {selectedCoupon && (
-              <TouchableOpacity
-                style={[
-                  styles.couponTag,
-                  { backgroundColor: "#f43f5e", borderColor: "#f43f5e" },
-                ]}
-                onPress={() => handleApplyCoupon(null)}
-              >
-                <Text style={{ color: "#fff" }}>Bỏ mã</Text>
-              </TouchableOpacity>
-            )}
-          </ScrollView>
+                  <Text
+                    style={{
+                      color: selectedCoupon?.id === c.id ? "#fff" : "#222",
+                      fontWeight: selectedCoupon?.id === c.id ? "bold" : "500",
+                    }}
+                  >
+                    {c.code} - {c.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              {selectedCoupon && (
+                <TouchableOpacity
+                  style={[
+                    styles.couponTag,
+                    { backgroundColor: "#f43f5e", borderColor: "#f43f5e" },
+                  ]}
+                  onPress={() => handleApplyCoupon(null)}
+                >
+                  <Text style={{ color: "#fff" }}>Bỏ mã</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+          )}
         </View>
 
         {/* ORDER SUMMARY */}
@@ -324,13 +345,66 @@ const PaymentPage = () => {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* ===== COUPON MODAL ===== */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={modalStyles.modalOverlay}>
+          <View style={modalStyles.modalContainer}>
+            {modalCoupon && (
+              <>
+                <Text style={modalStyles.modalTitle}>Chi tiết mã giảm giá</Text>
+                <Text style={modalStyles.codeText}>
+                  {modalCoupon.code} - {modalCoupon.name}
+                </Text>
+                <Text style={modalStyles.descText}>{modalCoupon.description}</Text>
+                <Text style={modalStyles.valueText}>
+                  Giảm: {modalCoupon.type === 0
+                    ? `${modalCoupon.value}%`
+                    : `${modalCoupon.value?.toLocaleString("vi-VN")}đ`}
+                </Text>
+                {modalCoupon.minOrderAmount && (
+                  <Text style={modalStyles.condText}>
+                    Đơn tối thiểu: {modalCoupon.minOrderAmount.toLocaleString("vi-VN")}đ
+                  </Text>
+                )}
+                {modalCoupon.endDate && (
+                  <Text style={modalStyles.condText}>
+                    Hạn sử dụng: {new Date(modalCoupon.endDate).toLocaleDateString("vi-VN")}
+                  </Text>
+                )}
+                <View style={{ flexDirection: "row", gap: 12, marginTop: 22, justifyContent: "flex-end" }}>
+                  <Pressable
+                    onPress={() => setModalVisible(false)}
+                    style={modalStyles.cancelBtn}
+                  >
+                    <Text style={{ color: "#555" }}>Huỷ</Text>
+                  </Pressable>
+                  <Pressable
+                    style={modalStyles.applyBtn}
+                    onPress={async () => {
+                      setModalVisible(false);
+                      await handleApplyCoupon(modalCoupon);
+                    }}
+                  >
+                    <Text style={{ color: "#fff", fontWeight: "bold" }}>Chọn mã này</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
 
 export default PaymentPage;
 
-// ==== STYLE giữ nguyên như trước ====
 const styles = StyleSheet.create({
   root: { flex: 1, padding: 14, backgroundColor: "#e5e2e2" },
   section: {
@@ -449,5 +523,69 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: "bold",
     letterSpacing: 0.7,
+  },
+});
+
+// -------- MODAL STYLES --------
+const modalStyles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.18)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    width: "86%",
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 26,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  modalTitle: {
+    fontWeight: "bold",
+    fontSize: 18,
+    marginBottom: 6,
+    color: "#2a2a2a",
+  },
+  codeText: {
+    color: "#0f52ba",
+    fontWeight: "700",
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  descText: {
+    color: "#444",
+    fontSize: 15,
+    marginBottom: 6,
+  },
+  valueText: {
+    fontSize: 16,
+    color: "#d90429",
+    fontWeight: "bold",
+    marginBottom: 6,
+  },
+  condText: {
+    color: "#666",
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  applyBtn: {
+    backgroundColor: "#6366F1",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignItems: "center",
+  },
+  cancelBtn: {
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignItems: "center",
+    marginRight: 6,
   },
 });
